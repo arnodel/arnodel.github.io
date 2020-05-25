@@ -1,0 +1,41 @@
+---
+layout: post
+title:  "Setting up KaTeX in Jekyll"
+date:   2020-05-25 21:15:14 +0100
+categories: katex jekyll
+---
+
+[{% katex %}\KaTeX{% endkatex %}](https://katex.org) is great, so that's what I
+thought of first of using for displaying mathematical expressions when setting
+up these pages. However I don't know anything about Jekyll at all, so it could
+have been a challenge...
+
+I'm setting up [jekyll-katex](https://github.com/linjer/jekyll-katex) and this
+post is both to test that it works on github-pages and to share how I set it up.
+It seems very nice and easy enough to set up!  The only trouble I had was
+finding how to add the KaTeX css to the header.  In the end I used [these
+instructions](https://jekyllrb.com/docs/themes/#overriding-theme-defaults) to
+copy the `_includes/head.html` default file for the `minima` theme into my
+`_includes` directory (which I created for the occasion!), then added this line
+to the `<head>` section of the file:
+```html
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+```
+This is my resulting [`_includes/head.html`](https://github.com/arnodel/arnodel.github.io/tree/master/_includes/head.html).
+
+Many thanks to the author of this plugin!
+
+The examples below are copy-pasted from the jekyll-katex readme.
+
+Some inline maths: {% katex %}
+c = \pm\sqrt{a^2 + b^2}
+{% endkatex %}
+
+Some display maths:
+{% katex display %}
+c = \pm\sqrt{a^2 + b^2}
+{% endkatex %}
+
+{% katexmm %}
+This is a mixed environment where you can have normal text and $c = \pm\sqrt{a^2 + b^2}$ fenced math. \$!
+{% endkatexmm %}
