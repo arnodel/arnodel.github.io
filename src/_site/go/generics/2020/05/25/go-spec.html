@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.6.1 -->
+<title>An idea for Go Generics | Marooned on Github</title>
+<meta name="generator" content="Jekyll v3.8.5" />
+<meta property="og:title" content="An idea for Go Generics" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="A “generic” graph package with interfaces" />
+<meta property="og:description" content="A “generic” graph package with interfaces" />
+<link rel="canonical" href="/_site/go/generics/2020/05/25/go-spec.html" />
+<meta property="og:url" content="/_site/go/generics/2020/05/25/go-spec.html" />
+<meta property="og:site_name" content="Marooned on Github" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2020-05-25T18:13:14+01:00" />
+<script type="application/ld+json">
+{"headline":"An idea for Go Generics","dateModified":"2020-05-25T18:13:14+01:00","datePublished":"2020-05-25T18:13:14+01:00","mainEntityOfPage":{"@type":"WebPage","@id":"/_site/go/generics/2020/05/25/go-spec.html"},"description":"A “generic” graph package with interfaces","@type":"BlogPosting","url":"/_site/go/generics/2020/05/25/go-spec.html","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/_site/assets/main.css"><link type="application/atom+xml" rel="alternate" href="/_site/feed.xml" title="Marooned on Github" /><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+</head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/_site/">Marooned on Github</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/_site/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">An idea for Go Generics</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2020-05-25T18:13:14+01:00" itemprop="datePublished">May 25, 2020
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <h2 id="a-generic-graph-package-with-interfaces">A “generic” <code class="language-plaintext highlighter-rouge">graph</code> package with interfaces</h2>
+
+<p>The first non-trivial example of the Go Contract proposal is a <a href="https://github.com/golang/proposal/blob/master/design/go2draft-contracts.md#mutually-referencing-type-parameters">graph
+contract</a>
+so I am using a similar example. Say we have a <code class="language-plaintext highlighter-rouge">graph</code> package defining the
+following:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">package</span> <span class="n">graph</span>
+
+<span class="k">type</span> <span class="n">N</span> <span class="k">interface</span> <span class="p">{</span>
+    <span class="n">Edges</span><span class="p">()</span> <span class="p">[]</span><span class="n">E</span>
+<span class="p">}</span>
+
+<span class="k">type</span> <span class="n">E</span> <span class="k">interface</span> <span class="p">{</span>
+    <span class="n">Nodes</span><span class="p">()</span> <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="k">type</span> <span class="n">Graph</span> <span class="k">struct</span> <span class="p">{</span>
+    <span class="n">nodes</span> <span class="p">[]</span><span class="n">N</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">NewGraph</span><span class="p">(</span><span class="n">nodes</span> <span class="p">[]</span><span class="n">N</span><span class="p">)</span> <span class="o">*</span><span class="n">Graph</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="o">&amp;</span><span class="n">Graph</span><span class="p">{</span><span class="n">nodes</span><span class="o">:</span> <span class="n">nodes</span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">Neighbors</span><span class="p">(</span><span class="n">n</span> <span class="n">N</span><span class="p">)</span> <span class="p">[]</span><span class="n">N</span> <span class="p">{</span>
+    <span class="k">var</span> <span class="n">neighbors</span> <span class="p">[]</span><span class="n">N</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">e</span> <span class="o">:=</span> <span class="k">range</span> <span class="n">n</span><span class="o">.</span><span class="n">Edges</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span> <span class="o">:=</span> <span class="n">e</span><span class="o">.</span><span class="n">Nodes</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">n1</span> <span class="o">!=</span> <span class="n">n</span> <span class="p">{</span>
+            <span class="n">neighbors</span> <span class="o">=</span> <span class="nb">append</span><span class="p">(</span><span class="n">neighbors</span><span class="p">,</span> <span class="n">n1</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">n2</span> <span class="o">!=</span> <span class="n">n</span> <span class="p">{</span>
+            <span class="n">neighbors</span> <span class="o">=</span> <span class="nb">append</span><span class="p">(</span><span class="n">neighbors</span><span class="p">,</span> <span class="n">n2</span><span class="p">)</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">neighbors</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>It is “generic” insofar as it doesn’t rely on a particular implementation of the
+node <code class="language-plaintext highlighter-rouge">N</code> interface and the edge <code class="language-plaintext highlighter-rouge">E</code> interface, but of course as Go currently
+stands it suffers from all the problems that the Go generics proposals are
+trying to solve. To define these problems more precisely, let’s try to use the
+package above.</p>
+
+<h2 id="issues-with-the-graph-package">Issues with the <code class="language-plaintext highlighter-rouge">graph</code> package</h2>
+
+<p>Say we have another package <code class="language-plaintext highlighter-rouge">mygraph</code> in which we want to implement a graph
+using the <code class="language-plaintext highlighter-rouge">graph.Graph</code> type but with a specialized type for <code class="language-plaintext highlighter-rouge">N</code> and <code class="language-plaintext highlighter-rouge">E</code>:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">package</span> <span class="n">mygraph</span>
+
+<span class="k">type</span> <span class="n">Node</span> <span class="k">struct</span> <span class="p">{</span>
+    <span class="n">edges</span> <span class="p">[]</span><span class="o">*</span><span class="n">Edge</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="p">(</span><span class="n">n</span> <span class="o">*</span><span class="n">Node</span><span class="p">)</span> <span class="n">Edges</span> <span class="p">[]</span><span class="o">*</span><span class="n">Edge</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">n</span><span class="o">.</span><span class="n">edges</span>
+<span class="p">}</span>
+
+<span class="k">type</span> <span class="n">Edge</span> <span class="k">struct</span> <span class="p">{</span>
+    <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span> <span class="o">*</span><span class="n">Node</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="p">(</span><span class="n">e</span> <span class="o">*</span><span class="n">Edge</span><span class="p">)</span> <span class="n">Nodes</span> <span class="p">(</span><span class="o">*</span><span class="n">Edge</span><span class="p">,</span> <span class="o">*</span><span class="n">Edge</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">e</span><span class="o">.</span><span class="n">n1</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">n2</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>If we want to make use of the <code class="language-plaintext highlighter-rouge">graph.Graph</code> type and the <code class="language-plaintext highlighter-rouge">graph.Neighbors</code>
+functions, many problems arise:</p>
+
+<ul>
+  <li>type safety: the compiler cannot ensure that only instances of <code class="language-plaintext highlighter-rouge">*Node</code> will be
+in our graph instance, as any type that implements <code class="language-plaintext highlighter-rouge">graph.N</code> will satisfy the
+type constraints.</li>
+  <li>performance: all our instances of <code class="language-plaintext highlighter-rouge">*Node</code> and <code class="language-plaintext highlighter-rouge">*Edge</code> will be wrapped in an
+interface, which will incur a small performance penalty. It also follows from
+this that there will be no opportunity for the compiler to optimise the code
+in the <code class="language-plaintext highlighter-rouge">graph</code> package for the particular <code class="language-plaintext highlighter-rouge">*Node</code> and <code class="language-plaintext highlighter-rouge">*Edge</code> implementations
+of the <code class="language-plaintext highlighter-rouge">graph.N</code> and <code class="language-plaintext highlighter-rouge">graph.E</code> interfaces.</li>
+  <li>boilerplate: it will be necessary to convert between interface and concrete
+type continually in the code using <code class="language-plaintext highlighter-rouge">graph</code>, and also between slice types, e.g.
+<code class="language-plaintext highlighter-rouge">[]*Node</code> and <code class="language-plaintext highlighter-rouge">[]graph.N</code>.</li>
+</ul>
+
+<h2 id="specialization-as-a-means-to-remedy-these-issues">Specialization as a means to remedy these issues</h2>
+
+<p>We introduce the idea of <em>specialization</em>. A specialization can be seen as a
+mapping from Go package-level identifiers to compile-time defined values (e.g.
+types, functions, constants). The new keyword <code class="language-plaintext highlighter-rouge">spec</code> will allow us to defined
+specializations.</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">// in package mygraph</span>
+
+<span class="n">spec</span> <span class="n">GraphSpec</span> <span class="p">{</span>
+    <span class="k">type</span> <span class="n">N</span> <span class="o">=</span> <span class="o">*</span><span class="n">Node</span> <span class="c">// The identifier N maps to the *Node type</span>
+    <span class="k">type</span> <span class="n">E</span> <span class="o">=</span> <span class="o">*</span><span class="n">Edge</span> <span class="c">// The identifier E maps to the *Edge type</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>This defines the <code class="language-plaintext highlighter-rouge">GraphSpec</code> specialization. This specialization can then be
+<em>applied</em> to package level types, functions, or even whole packages. A
+specialization is applied by replacing the definitions of the identifiers named
+in it with the value they are defined as in the target package. Here are some
+examples, all supposed to be defined in the <code class="language-plaintext highlighter-rouge">mygraph</code> package.</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">// import "graph"</span>
+
+<span class="k">type</span> <span class="n">Graph</span> <span class="o">=</span> <span class="n">GraphSpec</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">Graph</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>This is equivalent to defining</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">type</span> <span class="n">Graph</span> <span class="k">struct</span> <span class="p">{</span>
+    <span class="n">nodes</span> <span class="p">[]</span><span class="o">*</span><span class="n">Node</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Or:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">Neighbors</span> <span class="o">=</span> <span class="n">GraphSpec</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">Neighbors</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>This is equivalent to defining</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">Neighbors</span><span class="p">(</span><span class="n">n</span> <span class="n">Node</span><span class="p">)</span> <span class="p">[]</span><span class="o">*</span><span class="n">Node</span> <span class="p">{</span>
+    <span class="k">var</span> <span class="n">neighbors</span> <span class="p">[]</span><span class="o">*</span><span class="n">Node</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">e</span> <span class="o">:=</span> <span class="k">range</span> <span class="n">n</span><span class="o">.</span><span class="n">Edges</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span> <span class="o">:=</span> <span class="n">e</span><span class="o">.</span><span class="n">Nodes</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">n1</span> <span class="o">!=</span> <span class="n">n</span> <span class="p">{</span>
+            <span class="n">neighbors</span> <span class="o">=</span> <span class="nb">append</span><span class="p">(</span><span class="n">neighbors</span><span class="p">,</span> <span class="n">n1</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">n2</span> <span class="o">!=</span> <span class="n">n</span> <span class="p">{</span>
+            <span class="n">neighbors</span> <span class="o">=</span> <span class="nb">append</span><span class="p">(</span><span class="n">neighbors</span><span class="p">,</span> <span class="n">n2</span><span class="p">)</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">neighbors</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Or even perhaps</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">GraphSpec</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>This would be equivalent to “reimplementing” the whole of the <code class="language-plaintext highlighter-rouge">graph</code> package in
+he current <code class="language-plaintext highlighter-rouge">mygraph</code> package, so we would have the following defined in the
+<code class="language-plaintext highlighter-rouge">mygraph</code> package:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">type</span> <span class="n">Graph</span> <span class="k">struct</span> <span class="p">{</span>
+    <span class="n">nodes</span> <span class="p">[]</span><span class="n">Node</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">NewGraph</span><span class="p">(</span><span class="n">nodes</span> <span class="p">[]</span><span class="o">*</span><span class="n">Node</span><span class="p">)</span> <span class="o">*</span><span class="n">Graph</span> <span class="p">{</span>
+    <span class="c">// ...</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">Neighbors</span><span class="p">(</span><span class="n">n</span> <span class="n">Node</span><span class="p">)</span> <span class="p">[]</span><span class="n">Node</span> <span class="p">{</span>
+    <span class="c">// ...</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="to-be-continued">To be continued!</h2>
+
+<p>I’m hoping to have some time to think this trough at some point!  If you think
+this is a promising idea, please get in touch with me.</p>
+
+  </div><a class="u-url" href="/_site/go/generics/2020/05/25/go-spec.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/_site/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Marooned on Github</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">Marooned on Github</li><li><a class="u-email" href="mailto:arnodell@gmail.com">arnodell@gmail.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/arnodel"><svg class="svg-icon"><use xlink:href="/_site/assets/minima-social-icons.svg#github"></use></svg> <span class="username">arnodel</span></a></li><li><a href="https://www.twitter.com/ADelobelle"><svg class="svg-icon"><use xlink:href="/_site/assets/minima-social-icons.svg#twitter"></use></svg> <span class="username">ADelobelle</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p>A website for Arnaud Delobelle</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
