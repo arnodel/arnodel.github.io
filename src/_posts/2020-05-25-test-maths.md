@@ -28,7 +28,7 @@ Many thanks to the author of this plugin!
 The problem is that the plugin is not supported by github-pages.  So I guess for
 now I will have to build my site locally.  That means moving the whole source
 code for the Jekyll site to `src/`, building locally into `marooned/`, adding a
-`.nojekyll` file to the root so that Github doesn't try to build it iself.
+`.nojekyll` file to the root so that Github doesn't try to build it itself.
 Thanks Github!  This is the price to pay for being able to render maths
 server-side it seems.
 
