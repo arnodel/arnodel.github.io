@@ -180,7 +180,7 @@ examples, all supposed to be defined in the <code class="language-plaintext high
 
 <p>This is equivalent to defining</p>
 
-<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">Neighbors</span><span class="p">(</span><span class="n">n</span> <span class="n">Node</span><span class="p">)</span> <span class="p">[]</span><span class="o">*</span><span class="n">Node</span> <span class="p">{</span>
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">Neighbors</span><span class="p">(</span><span class="n">n</span> <span class="o">*</span><span class="n">Node</span><span class="p">)</span> <span class="p">[]</span><span class="o">*</span><span class="n">Node</span> <span class="p">{</span>
     <span class="k">var</span> <span class="n">neighbors</span> <span class="p">[]</span><span class="o">*</span><span class="n">Node</span>
     <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">e</span> <span class="o">:=</span> <span class="k">range</span> <span class="n">n</span><span class="o">.</span><span class="n">Edges</span><span class="p">()</span> <span class="p">{</span>
         <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span> <span class="o">:=</span> <span class="n">e</span><span class="o">.</span><span class="n">Nodes</span><span class="p">()</span>
@@ -212,7 +212,7 @@ he current <code class="language-plaintext highlighter-rouge">mygraph</code> pac
     <span class="c">// ...</span>
 <span class="p">}</span>
 
-<span class="k">func</span> <span class="n">Neighbors</span><span class="p">(</span><span class="n">n</span> <span class="n">Node</span><span class="p">)</span> <span class="p">[]</span><span class="n">Node</span> <span class="p">{</span>
+<span class="k">func</span> <span class="n">Neighbors</span><span class="p">(</span><span class="n">n</span> <span class="o">*</span><span class="n">Node</span><span class="p">)</span> <span class="p">[]</span><span class="o">*</span><span class="n">Node</span> <span class="p">{</span>
     <span class="c">// ...</span>
 <span class="p">}</span>
 </code></pre></div></div>
