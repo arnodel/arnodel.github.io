@@ -21,17 +21,20 @@ to the `<head>` section of the file:
 ```html
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
 ```
-This is my resulting [`_includes/head.html`](https://github.com/arnodel/arnodel.github.io/tree/master/_includes/head.html).
+This is my resulting [`src/_includes/head.html`](https://github.com/arnodel/arnodel.github.io/tree/master/src/_includes/head.html).
 
 Many thanks to the author of this plugin!
 
 The problem is that the plugin is not supported by github-pages.  So I guess for
-now I will have to build my site locally.  That means removing `_site` from my
-`.gitignore` and adding a `_site/.nojekyll` file in order to tell github-pages
-not to run the jekyll build.  There seems to be a way to use a Travis job to
-circumvent this issue [here](https://stackoverflow.com/a/51454606/2380495).
-Perhaps I will set that up later, as this means I need to remember to build the
-site before each commit!.
+now I will have to build my site locally.  That means moving the whole source
+code for the Jekyll site to `src/`, building locally into `marooned/`, adding a
+`.nojekyll` file to the root so that Github doesn't try to build it iself.
+Thanks Github!  This is the price to pay for being able to render maths
+server-side it seems.
+
+There seems to be a way to use a Travis Job circumvent this issue
+[here](https://stackoverflow.com/a/51454606/2380495). Perhaps I will set that up
+later, as this means I need to remember to build the site before each commit!.
 
 The examples below are copy-pasted from the jekyll-katex readme.
 
