@@ -124,18 +124,18 @@ using the <code class="language-plaintext highlighter-rouge">graph.Graph</code> 
 </code></pre></div></div>
 
 <p>If we want to make use of the <code class="language-plaintext highlighter-rouge">graph.Graph</code> type and the <code class="language-plaintext highlighter-rouge">graph.Neighbors</code>
-functions, many problems arise:</p>
+functions, several problems arise.</p>
 
 <ul>
-  <li>type safety: the compiler cannot ensure that only instances of <code class="language-plaintext highlighter-rouge">*Node</code> will be
+  <li><strong>Type safety</strong>. The compiler cannot ensure that only instances of <code class="language-plaintext highlighter-rouge">*Node</code> will be
 in our graph instance, as any type that implements <code class="language-plaintext highlighter-rouge">graph.N</code> will satisfy the
 type constraints.</li>
-  <li>performance: all our instances of <code class="language-plaintext highlighter-rouge">*Node</code> and <code class="language-plaintext highlighter-rouge">*Edge</code> will be wrapped in an
+  <li><strong>Performance</strong>. All our instances of <code class="language-plaintext highlighter-rouge">*Node</code> and <code class="language-plaintext highlighter-rouge">*Edge</code> will be wrapped in an
 interface, which will incur a small performance penalty. It also follows from
 this that there will be no opportunity for the compiler to optimise the code
 in the <code class="language-plaintext highlighter-rouge">graph</code> package for the particular <code class="language-plaintext highlighter-rouge">*Node</code> and <code class="language-plaintext highlighter-rouge">*Edge</code> implementations
 of the <code class="language-plaintext highlighter-rouge">graph.N</code> and <code class="language-plaintext highlighter-rouge">graph.E</code> interfaces.</li>
-  <li>boilerplate: it will be necessary to convert between interface and concrete
+  <li><strong>Boilerplate</strong>. it will be necessary to convert between interface and concrete
 type continually in the code using <code class="language-plaintext highlighter-rouge">graph</code>, and also between slice types, e.g.
 <code class="language-plaintext highlighter-rouge">[]*Node</code> and <code class="language-plaintext highlighter-rouge">[]graph.N</code>.</li>
 </ul>
