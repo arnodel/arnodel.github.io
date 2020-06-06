@@ -57,8 +57,9 @@ interfaces as a means to write generic code in Go.</p>
 <p>This proposal introduces the ability to <em>specialize</em> a package.  This is
 achieved by “replacing” a set of interface types defined in that package with
 some concrete types.  In this section I will go through a basic example, before
-.  The <code class="language-plaintext highlighter-rouge">slice</code> package below defined a <code class="language-plaintext highlighter-rouge">Reverse</code> function that reverses a slice
-of type <code class="language-plaintext highlighter-rouge">T</code> in place.</p>
+attempting to define more precisely the syntax and semantics of this feature and
+then giving a more varied set of examples.  The <code class="language-plaintext highlighter-rouge">slice</code> package below defined a
+<code class="language-plaintext highlighter-rouge">Reverse</code> function that reverses a slice of type <code class="language-plaintext highlighter-rouge">T</code> in place.</p>
 
 <div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">package</span> <span class="n">slice</span>
 
