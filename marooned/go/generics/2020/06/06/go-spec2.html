@@ -46,7 +46,7 @@
   </header>
 
   <div class="post-content e-content" itemprop="articleBody">
-    <p>This is a follow-up to my  <a href="/marooned//go/generics/2020/05/25/go-spec.html">inital post</a> about Go Generics.  In this post I attempt to scale back
+    <p>This is a follow-up to my <a href="/marooned//go/generics/2020/05/25/go-spec.html">inital post</a> about Go Generics.  In this post I attempt to scale back
 the approach outlined there to be the simplest possible while still providing
 the full power of parametrized code, and sketch the semantics more precisely.
 The problem space I’m trying to explore remains the same, which is to use
@@ -386,6 +386,55 @@ more universally applicable.</p>
 <span class="p">}</span>
 
 <span class="k">type</span> <span class="n">Vec64</span> <span class="o">=</span> <span class="n">vector</span><span class="p">(</span><span class="n">Scalar</span><span class="o">=</span><span class="n">Float64</span><span class="p">)</span><span class="o">.</span><span class="n">Vector</span>
+</code></pre></div></div>
+
+<h3 id="mutually-referencing-type-parameters">Mutually referencing type parameters</h3>
+
+<p>In the <a href="https://github.com/golang/proposal/blob/master/design/go2draft-contracts.md">contracts
+proposal</a>,
+there is an example of generic types / functions with <a href="https://github.com/golang/proposal/blob/master/design/go2draft-contracts.md#mutually-referencing-type-parameters">mutually referencing type
+parameters</a>
+which involves a <code class="language-plaintext highlighter-rouge">graph</code> package defining a contract over two type parameters:
+<code class="language-plaintext highlighter-rouge">Node</code> and <code class="language-plaintext highlighter-rouge">Edge</code>.</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">package</span> <span class="n">graph</span>
+
+<span class="k">type</span> <span class="n">Node</span> <span class="k">interface</span> <span class="p">{</span>
+    <span class="n">Edges</span><span class="p">()</span> <span class="p">[]</span><span class="n">Edge</span>
+<span class="p">}</span>
+
+<span class="k">type</span> <span class="n">Edge</span> <span class="n">interace</span> <span class="p">{</span>
+    <span class="n">Nodes</span><span class="p">()</span> <span class="p">(</span><span class="n">from</span> <span class="n">Node</span><span class="p">,</span> <span class="n">to</span> <span class="n">Node</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="k">type</span> <span class="n">Graph</span> <span class="k">struct</span> <span class="p">{</span> <span class="o">...</span> <span class="p">}</span>
+
+<span class="k">func</span> <span class="p">(</span><span class="n">g</span> <span class="o">*</span><span class="n">Graph</span><span class="p">)</span> <span class="n">ShortestPath</span><span class="p">(</span><span class="n">from</span><span class="p">,</span> <span class="n">to</span> <span class="n">Node</span><span class="p">)</span> <span class="p">[]</span><span class="n">Edge</span> <span class="p">{</span> <span class="o">...</span> <span class="p">}</span>
+
+<span class="c">// For reference, the contract proposal implements this package as follows:</span>
+<span class="c">//</span>
+<span class="c">// contract G(Node, Edge) {</span>
+<span class="c">// 	Node Edges() []Edge</span>
+<span class="c">// 	Edge Nodes() (from Node, to Node)</span>
+<span class="c">// }</span>
+
+<span class="c">// type Graph(type Node, Edge G) struct { ... }</span>
+<span class="c">// func New(type Node, Edge G)(nodes []Node) *Graph(Node, Edge) { ... }</span>
+<span class="c">// func (g *Graph(Node, Edge)) ShortestPath(from, to Node) []Edge { ... }</span>
+</code></pre></div></div>
+
+<p>This package can then be used as follows in another package</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">type</span> <span class="n">Vertex</span> <span class="k">struct</span> <span class="p">{</span> <span class="o">...</span> <span class="p">}</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">v</span> <span class="o">*</span><span class="n">Vertex</span><span class="p">)</span> <span class="n">Edges</span><span class="p">()</span> <span class="p">[]</span><span class="o">*</span><span class="n">FromTo</span> <span class="p">{</span> <span class="o">...</span> <span class="p">}</span>
+<span class="k">type</span> <span class="n">FromTo</span> <span class="k">struct</span> <span class="p">{</span> <span class="o">...</span> <span class="p">}</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">ft</span> <span class="o">*</span><span class="n">FromTo</span><span class="p">)</span> <span class="n">Nodes</span><span class="p">()</span> <span class="p">(</span><span class="o">*</span><span class="n">Vertex</span><span class="p">,</span> <span class="o">*</span><span class="n">Vertex</span><span class="p">)</span> <span class="p">{</span> <span class="o">...</span> <span class="p">}</span>
+
+<span class="k">var</span> <span class="n">g</span> <span class="o">=</span> <span class="n">graph</span><span class="p">(</span><span class="n">Node</span><span class="o">=*</span><span class="n">Vertex</span><span class="p">,</span> <span class="n">Edge</span><span class="o">=*</span><span class="n">FromTo</span><span class="p">)</span><span class="o">.</span><span class="n">New</span><span class="p">([]</span><span class="o">*</span><span class="n">Vertex</span><span class="p">)</span>
+
+<span class="c">// In the contract proposal, this is how you instanciate a graph:</span>
+<span class="c">//</span>
+<span class="c">// var g = graph.New(*Vertex, *FromTo)([]*Vertex{ ... })</span>
 </code></pre></div></div>
 
   </div><a class="u-url" href="/marooned/go/generics/2020/06/06/go-spec2.html" hidden></a>
