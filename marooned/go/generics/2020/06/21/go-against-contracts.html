@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.6.1 -->
+<title>A Case Against Go Contracts | Marooned on Github</title>
+<meta name="generator" content="Jekyll v3.8.5" />
+<meta property="og:title" content="A Case Against Go Contracts" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="I originally wrote this on the 5th of August 2019 but didn’t share it." />
+<meta property="og:description" content="I originally wrote this on the 5th of August 2019 but didn’t share it." />
+<link rel="canonical" href="/marooned/go/generics/2020/06/21/go-against-contracts.html" />
+<meta property="og:url" content="/marooned/go/generics/2020/06/21/go-against-contracts.html" />
+<meta property="og:site_name" content="Marooned on Github" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2020-06-21T00:00:00+01:00" />
+<script type="application/ld+json">
+{"headline":"A Case Against Go Contracts","dateModified":"2020-06-21T00:00:00+01:00","datePublished":"2020-06-21T00:00:00+01:00","mainEntityOfPage":{"@type":"WebPage","@id":"/marooned/go/generics/2020/06/21/go-against-contracts.html"},"description":"I originally wrote this on the 5th of August 2019 but didn’t share it.","@type":"BlogPosting","url":"/marooned/go/generics/2020/06/21/go-against-contracts.html","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/marooned/assets/main.css"><link type="application/atom+xml" rel="alternate" href="/marooned/feed.xml" title="Marooned on Github" /><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+</head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/marooned/">Marooned on Github</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/marooned/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">A Case Against Go Contracts</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2020-06-21T00:00:00+01:00" itemprop="datePublished">Jun 21, 2020
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>I originally wrote this on the 5th of August 2019 but didn’t share it.</p>
+
+<p>After reading about <a href="https://blog.golang.org/generics-next-steps">The Next Steps for Generics</a> on the Go Blog, which I think
+are great next steps by the way, I recalled that last year shortly after the
+publication of the <a href="https://github.com/golang/proposal/blob/master/design/go2draft-contracts.md">Go Contracts Proposal</a> I had written down an argument
+against contract, explaining why in my view their overlap with interfaces was a
+problem, and showing step by step how we could make both concepts be more
+orthogonal with each other, which ends in the realisation that contracts are not
+needed after all.</p>
+
+<p>I now see some value in sharing it, even though it’s a little late, because I
+think it provides a rationale for evaluating the updated interface-based
+proposal against the previous contract-base one. So here it is, copy-pasted
+from a file on my computer!</p>
+
+<h2 id="non-orthogonality-in-the-draft-generics-proposal">Non-orthogonality in the draft generics proposal</h2>
+
+<p>An example of the proposal is the <a href="https://github.com/golang/proposal/blob/master/design/go2draft-contracts.md#contract-introduction"><code class="language-plaintext highlighter-rouge">Stringer</code> contract</a>,
+spelt differently to disambiguate with the interface:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">contract</span> <span class="n">StringerC</span><span class="p">(</span><span class="n">T</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">T</span> <span class="n">String</span><span class="p">()</span> <span class="kt">string</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>This is inspired from the standard library <code class="language-plaintext highlighter-rouge">Stringer</code> interface:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">type</span> <span class="n">Stringer</span> <span class="k">interface</span> <span class="p">{</span>
+    <span class="n">String</span><span class="p">()</span> <span class="kt">string</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>In fact, any type implements the <code class="language-plaintext highlighter-rouge">Stringer</code> interface if and only if it
+satisfies the <code class="language-plaintext highlighter-rouge">StringerC</code> contract! The concepts are clearly not orthogonal. I
+am not implying that the contract and interface above fulfill the same role
+(they don’t), I am saying that they express the same information about a type.</p>
+
+<p>OTOH another example given in the proposal is that of a <a href="https://github.com/golang/proposal/blob/master/design/go2draft-contracts.md#mutually-referencing-type-parameters">graph contract</a>:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">contract</span> <span class="n">G</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">E</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">N</span> <span class="n">Edges</span><span class="p">()</span> <span class="p">[]</span><span class="n">E</span>
+    <span class="n">E</span> <span class="n">Nodes</span><span class="p">()</span> <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Clearly that relationship between types cannot be expressed with an interface,
+because an interface is about specifying method signatures for one type only.</p>
+
+<p>What I want to show is that it is possible to ‘factor out’ the common part of
+contracts and interfaces so that:</p>
+
+<ul>
+  <li>interfaces are the only means of specifying the signature of a set of methods
+for a atype.</li>
+  <li>contracts are the only means of specifying relationships between types.</li>
+</ul>
+
+<h2 id="factoring-method-signature-out-of-contracts">Factoring method signature out of contracts</h2>
+
+<p>The graph contract:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">contract</span> <span class="n">G</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">E</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">N</span> <span class="n">Edges</span><span class="p">()</span> <span class="p">[]</span><span class="n">E</span>
+    <span class="n">E</span> <span class="n">Nodes</span><span class="p">()</span> <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>can be rewritten as the combination of two contracts, each only specifying the
+methods of one single generic type:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">contract</span> <span class="n">NodeC</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">E</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">N</span> <span class="n">Edges</span><span class="p">()</span> <span class="p">[]</span><span class="n">E</span>
+<span class="p">}</span>
+
+<span class="n">contract</span> <span class="n">EdgeC</span><span class="p">(</span><span class="n">E</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">E</span> <span class="n">Nodes</span> <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="n">contract</span> <span class="n">G</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">E</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">NodeC</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">E</span><span class="p">)</span>
+    <span class="n">EdgeC</span><span class="p">(</span><span class="n">E</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Now the interfaces <code class="language-plaintext highlighter-rouge">NodeC</code> and <code class="language-plaintext highlighter-rouge">EdgeC</code> express information about a type that can
+be expressed by generic interfaces:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">type</span> <span class="n">NodeI</span><span class="p">(</span><span class="k">type</span> <span class="n">E</span><span class="p">)</span> <span class="k">interface</span> <span class="p">{</span>
+    <span class="n">Edges</span><span class="p">()</span> <span class="p">[]</span><span class="n">E</span>
+<span class="p">}</span>
+
+<span class="k">type</span> <span class="n">EdgeI</span><span class="p">(</span><span class="k">type</span> <span class="n">N</span><span class="p">)</span> <span class="k">interface</span> <span class="p">{</span>
+    <span class="n">Nodes</span><span class="p">()</span> <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Now if I only could express in a contract that a type should satisfy an
+interface, I could express my graph contract in terms of generic interfaces. So
+let’s imagine that I can write:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">contract</span> <span class="n">G</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">E</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">N</span> <span class="n">NodeI</span><span class="p">(</span><span class="n">E</span><span class="p">)</span>  <span class="c">// This means that N implements the NodeI(E) interface</span>
+    <span class="n">E</span> <span class="n">EdgeI</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>  <span class="c">// This means that E implements the EdgeI(N) interface</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>If we ignore for now the case of types in contracts, I think it is clear that
+every contract can be rewritten in terms of generic interfaces like the one
+above. It’s pretty obvious that the process above can be applied to any
+contract.</p>
+
+<h2 id="the-case-of-types-in-contracts">The case of types in contracts</h2>
+
+<p>According to the principle that what is about one single type should be
+specified in an interface, a contract like this one:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">contract</span> <span class="n">SignedIntegerC</span><span class="p">(</span><span class="n">T</span><span class="p">)</span> <span class="p">{</span>
+	<span class="n">T</span> <span class="kt">int</span><span class="p">,</span> <span class="kt">int8</span><span class="p">,</span> <span class="kt">int16</span><span class="p">,</span> <span class="kt">int32</span><span class="p">,</span> <span class="kt">int64</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>should really be an interface:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">type</span> <span class="n">SignedIntegerI</span> <span class="k">interface</span> <span class="p">{</span>
+    <span class="kt">int</span><span class="p">,</span> <span class="kt">int8</span><span class="p">,</span> <span class="kt">int16</span><span class="p">,</span> <span class="kt">int32</span><span class="p">,</span> <span class="kt">int64</span>
+<span class="p">}</span>
+
+<span class="n">contract</span> <span class="n">SignedIntegerC</span><span class="p">(</span><span class="n">T</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">T</span> <span class="n">SignedInteger</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>The above means that types that implement <code class="language-plaintext highlighter-rouge">SignedIntegerI</code> must have one of the
+types listed as its underlying type.</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">Sum</span><span class="p">(</span><span class="k">type</span> <span class="n">T</span> <span class="n">SignedIntegerC</span><span class="p">)(</span><span class="n">s</span> <span class="p">[]</span><span class="n">T</span><span class="p">)</span> <span class="p">(</span><span class="n">sum</span> <span class="kt">int64</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">n</span> <span class="o">:=</span> <span class="k">range</span> <span class="n">s</span> <span class="p">{</span>
+        <span class="n">sum</span> <span class="o">+=</span> <span class="kt">int64</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="k">return</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Note that it means that in the above we should not be able to choose
+<code class="language-plaintext highlighter-rouge">SignedInterfaceI</code> as the value of <code class="language-plaintext highlighter-rouge">T</code> as the type <code class="language-plaintext highlighter-rouge">SignedInterfaceI</code> itself
+does not have any of the signed integer types as its underlying type. That is a
+bit strange!</p>
+
+<h2 id="why-use-a-contract-at-all">Why use a contract at all?</h2>
+
+<p>Say we want to implement a graph data structure using the <code class="language-plaintext highlighter-rouge">G</code> contract specified above:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">contract</span> <span class="n">G</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">E</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">N</span> <span class="n">NodeI</span><span class="p">(</span><span class="n">E</span><span class="p">)</span>
+    <span class="n">E</span> <span class="n">EdgeI</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="k">type</span> <span class="n">Graph</span><span class="p">(</span><span class="k">type</span> <span class="n">N</span><span class="p">,</span> <span class="n">E</span><span class="p">,</span> <span class="n">G</span><span class="p">)</span> <span class="k">struct</span> <span class="p">{</span> <span class="o">...</span> <span class="p">}</span>
+</code></pre></div></div>
+
+<p>Instead, you could just specify what interfaces the types <code class="language-plaintext highlighter-rouge">N</code> and <code class="language-plaintext highlighter-rouge">E</code> should implement:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">type</span> <span class="n">Graph</span><span class="p">(</span><span class="k">type</span> <span class="n">N</span> <span class="n">NodeI</span><span class="p">(</span><span class="n">E</span><span class="p">),</span> <span class="n">E</span> <span class="n">EdgeI</span><span class="p">(</span><span class="n">N</span><span class="p">))</span> <span class="k">struct</span> <span class="p">{</span> <span class="o">...</span> <span class="p">}</span>
+</code></pre></div></div>
+
+<p>In fact many of the contracts in the examples I have seen so far do not express
+a relationship of the types they are a contract for. Here is an example from
+the <a href="https://github.com/golang/proposal/blob/master/design/go2draft-contracts.md#metrics"><code class="language-plaintext highlighter-rouge">metrics</code> package</a>:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">contract</span> <span class="n">cmp3</span><span class="p">(</span><span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">T3</span><span class="p">)</span> <span class="p">{</span>
+	<span class="n">comparable</span><span class="p">(</span><span class="n">T1</span><span class="p">)</span>
+	<span class="n">comparable</span><span class="p">(</span><span class="n">T2</span><span class="p">)</span>
+	<span class="n">comparable</span><span class="p">(</span><span class="n">T3</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="k">type</span> <span class="n">key3</span><span class="p">(</span><span class="k">type</span> <span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">T3</span> <span class="n">cmp3</span><span class="p">)</span> <span class="k">struct</span> <span class="p">{</span>
+	<span class="n">f1</span> <span class="n">T1</span>
+	<span class="n">f2</span> <span class="n">T2</span>
+	<span class="n">f3</span> <span class="n">T3</span>
+<span class="p">}</span>
+
+<span class="k">type</span> <span class="n">Metric3</span><span class="p">(</span><span class="k">type</span> <span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">T3</span> <span class="n">cmp3</span><span class="p">)</span> <span class="k">struct</span> <span class="p">{</span>
+	<span class="n">mu</span> <span class="n">sync</span><span class="o">.</span><span class="n">Mutex</span>
+	<span class="n">m</span>  <span class="k">map</span><span class="p">[</span><span class="n">key3</span><span class="p">(</span><span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">T3</span><span class="p">)]</span><span class="kt">int</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Assuming <code class="language-plaintext highlighter-rouge">comparable</code> is an interface, using this new syntax you wouldn’t need
+the contract and could just write the following.</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">type</span> <span class="n">key3</span><span class="p">(</span><span class="k">type</span> <span class="n">T1</span> <span class="n">comparable</span><span class="p">,</span> <span class="n">T2</span> <span class="n">comparable</span><span class="p">,</span> <span class="n">T3</span> <span class="n">comparable</span><span class="p">)</span> <span class="k">struct</span> <span class="p">{</span>
+	<span class="n">f1</span> <span class="n">T1</span>
+	<span class="n">f2</span> <span class="n">T2</span>
+	<span class="n">f3</span> <span class="n">T3</span>
+<span class="p">}</span>
+
+<span class="k">type</span> <span class="n">Metric3</span><span class="p">(</span><span class="k">type</span> <span class="n">T1</span> <span class="n">comparable</span><span class="p">,</span> <span class="n">T2</span> <span class="n">comparable</span><span class="p">,</span> <span class="n">T3</span> <span class="n">comparable</span><span class="p">)</span> <span class="k">struct</span> <span class="p">{</span>
+	<span class="n">mu</span> <span class="n">sync</span><span class="o">.</span><span class="n">Mutex</span>
+	<span class="n">m</span>  <span class="k">map</span><span class="p">[</span><span class="n">key3</span><span class="p">(</span><span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">T3</span><span class="p">)]</span><span class="kt">int</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>It’s a matter of taste what syntax is nicer, but what is sure is that the
+contract version is no more expressive.</p>
+
+
+  </div><a class="u-url" href="/marooned/go/generics/2020/06/21/go-against-contracts.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/marooned/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Marooned on Github</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">Marooned on Github</li><li><a class="u-email" href="mailto:arnodell@gmail.com">arnodell@gmail.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/arnodel"><svg class="svg-icon"><use xlink:href="/marooned/assets/minima-social-icons.svg#github"></use></svg> <span class="username">arnodel</span></a></li><li><a href="https://www.twitter.com/ADelobelle"><svg class="svg-icon"><use xlink:href="/marooned/assets/minima-social-icons.svg#twitter"></use></svg> <span class="username">ADelobelle</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p>A website for Arnaud Delobelle</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
