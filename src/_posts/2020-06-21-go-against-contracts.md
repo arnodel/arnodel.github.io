@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "A Case Against Go Contracts"
+title: "Go Contracts clash with Interfaces"
 categories: go generics
 ---
 
