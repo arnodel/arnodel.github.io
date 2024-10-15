@@ -96,7 +96,7 @@ sharing it…</p>
     <tr>
       <td><a href="#v5">v5</a></td>
       <td>Do not waste a random bit</td>
-      <td>Coming soon…</td>
+      <td>4.08s</td>
     </tr>
     <tr>
       <td><a href="#v6">v6</a></td>
@@ -183,7 +183,8 @@ points on it (and perhaps extra useful data), we will call this the “world
 map”.</li>
 </ul>
 
-<p>We need to define some constants, let’s put them in constants.go:</p>
+<p>We need to define some constants, let’s put them in
+<a href="https://github.com/arnodel/go-dla/blob/v1/constants.go">constants.go</a>:</p>
 
 <div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">const</span> <span class="p">(</span>
     <span class="n">worldWidth</span>  <span class="o">=</span> <span class="m">1000</span>
@@ -199,7 +200,8 @@ be involved in calculations that need to be optimised.  As for
 seems generous, as to fill it you’d have to be able to calculate more than 5000
 points every 1/60th of a second…</p>
 
-<p>It will help to have a notion of <code class="language-plaintext highlighter-rouge">Point</code>, let’s put it in point.go:</p>
+<p>It will help to have a notion of <code class="language-plaintext highlighter-rouge">Point</code>, let’s put it in
+<a href="https://github.com/arnodel/go-dla/blob/v1/point.go">point.go</a>:</p>
 
 <div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">type</span> <span class="n">Point</span> <span class="k">struct</span> <span class="p">{</span>
     <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="kt">int</span>
@@ -241,7 +243,8 @@ points every 1/60th of a second…</p>
 <span class="p">}</span>
 </code></pre></div></div>
 
-<p>The “world map” will also be easier to manipulate if it has its own type.  Let’s put it in worldmap.go:</p>
+<p>The “world map” will also be easier to manipulate if it has its own type.  Let’s
+put it in <a href="https://github.com/arnodel/go-dla/blob/v1/worldmap.go">worldmap.go</a>:</p>
 
 <div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="s">"iter"</span>
 
@@ -288,7 +291,8 @@ possible (until in either runs out of points or runs out of time) and draws them
 on the world image.</p>
 
 <p>An <code class="language-plaintext highlighter-rouge">AddPoint()</code> method is also exposed - this is what the workers will call when
-one of their moving particles has aggregated.</p>
+one of their moving particles has aggregated. So here is
+<a href="https://github.com/arnodel/go-dla/blob/v1/game.go">game.go</a>.</p>
 
 <div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="p">(</span>
     <span class="s">"image/color"</span>
@@ -378,7 +382,8 @@ one of their moving particles has aggregated.</p>
 detects when they get aggregated.  Let’s do it the simplest way we can do it, in
 worker.go.  Note that <code class="language-plaintext highlighter-rouge">worldMap</code> is a pointer, which is not required in our
 current implementation but may be useful if we change the <code class="language-plaintext highlighter-rouge">WorldMap</code> to no
-longer be a <code class="language-plaintext highlighter-rouge">map</code>.</p>
+longer be a <code class="language-plaintext highlighter-rouge">map</code>.  This gives us
+<a href="https://github.com/arnodel/go-dla/blob/v1/worker.go">.</a></p>
 
 <div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="p">(</span>
     <span class="s">"log"</span>
@@ -416,11 +421,10 @@ longer be a <code class="language-plaintext highlighter-rouge">map</code>.</p>
 </code></pre></div></div>
 
 <p>So now we can make this a Go program with a <code class="language-plaintext highlighter-rouge">main()</code> function putting it all
-together and giving us a few initialisation options.  That will go in main.go.</p>
+together and giving us a few initialisation options.  That will go in
+<a href="https://github.com/arnodel/go-dla/blob/v1/main.go">main.go</a>.</p>
 
-<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">package</span> <span class="n">main</span>
-
-<span class="k">import</span> <span class="p">(</span>
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="p">(</span>
     <span class="s">"flag"</span>
     <span class="s">"log"</span>
     <span class="s">"math"</span>
@@ -603,11 +607,11 @@ Showing top 5 nodes out of 55
 
 <p>The obvious change to try here is to use a slice or an array as the backing data
 structure for <code class="language-plaintext highlighter-rouge">WorldMap</code>.  Since the dimensions of the world are known at
-compile time, let’s use an array.  So worldmap.go becomes this:</p>
+compile time, let’s use an array.  So
+<a href="https://github.com/arnodel/go-dla/blob/v2/worldmap.go">worldmap.go</a> becomes
+this:</p>
 
-<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">package</span> <span class="n">main</span>
-
-<span class="k">import</span> <span class="s">"iter"</span>
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="s">"iter"</span>
 
 <span class="k">type</span> <span class="n">WorldMap</span> <span class="p">[</span><span class="n">worldWidth</span> <span class="o">*</span> <span class="n">worldHeight</span><span class="p">]</span><span class="kt">bool</span>
 
@@ -621,10 +625,10 @@ compile time, let’s use an array.  So worldmap.go becomes this:</p>
 
 <span class="c">// Contains returns true if p was added to the map.</span>
 <span class="k">func</span> <span class="p">(</span><span class="n">m</span> <span class="o">*</span><span class="n">WorldMap</span><span class="p">)</span> <span class="n">Contains</span><span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">)</span> <span class="kt">bool</span> <span class="p">{</span>
-	<span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">&lt;</span> <span class="m">0</span> <span class="o">||</span> <span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">&gt;=</span> <span class="n">worldWidth</span> <span class="o">||</span> <span class="n">p</span><span class="o">.</span><span class="n">Y</span> <span class="o">&lt;</span> <span class="m">0</span> <span class="o">||</span> <span class="n">p</span><span class="o">.</span><span class="n">Y</span> <span class="o">&gt;=</span> <span class="n">worldHeight</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="no">false</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="n">m</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">X</span><span class="o">*</span><span class="n">worldHeight</span><span class="o">+</span><span class="n">p</span><span class="o">.</span><span class="n">Y</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">&lt;</span> <span class="m">0</span> <span class="o">||</span> <span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">&gt;=</span> <span class="n">worldWidth</span> <span class="o">||</span> <span class="n">p</span><span class="o">.</span><span class="n">Y</span> <span class="o">&lt;</span> <span class="m">0</span> <span class="o">||</span> <span class="n">p</span><span class="o">.</span><span class="n">Y</span> <span class="o">&gt;=</span> <span class="n">worldHeight</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="no">false</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">m</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">X</span><span class="o">*</span><span class="n">worldHeight</span><span class="o">+</span><span class="n">p</span><span class="o">.</span><span class="n">Y</span><span class="p">]</span>
 <span class="p">}</span>
 
 <span class="c">// Neighbours returns true if the map contains a point one step away from p.</span>
@@ -671,7 +675,7 @@ irrelevant nodes from the result).</p>
 <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ go tool pprof <span class="nt">-http</span> :8000 v2.pprof
 </code></pre></div></div>
 
-<p><a href="/marooned//assets/dla-v2-pprof.png"><img src="/marooned//assets/dla-v2-pprof.png" alt="v1 profiling" style="display:block; margin-left:auto; margin-right:auto; width: 80%" /></a></p>
+<p><a href="/marooned//assets/dla-v2-pprof.png"><img src="/marooned//assets/dla-v2-pprof.png" alt="v2 profiling" style="display:block; margin-left:auto; margin-right:auto; width: 80%" /></a></p>
 
 <p>As for version 1, it’s even more obvious using the CLI.  Note we can also bring
 up a listing of the offending function with some stats about each line.</p>
@@ -751,17 +755,17 @@ index b3a8b02..63f2bb1 100644
 </span><span class="gd">--- a/main.go
 </span><span class="gi">+++ b/main.go
 </span><span class="p">@@ -6,6 +6,7 @@</span> import (
- 	"math"
- 	"math/rand"
- 	"os"
+     "math"
+     "math/rand"
+     "os"
 <span class="gi">+	"runtime"
-</span> 	"runtime/pprof"
+</span>     "runtime/pprof"
  
- 	"github.com/hajimehoshi/ebiten/v2"
+     "github.com/hajimehoshi/ebiten/v2"
 <span class="p">@@ -13,16 +14,25 @@</span> import (
  
  func main() {
- 	var (
+     var (
 <span class="gd">-		cpuprofile string
 -		npoints    int
 -		methodName string
@@ -769,14 +773,14 @@ index b3a8b02..63f2bb1 100644
 +		npoints     int
 +		methodName  string
 +		workerCount int
-</span> 	)
- 	flag.StringVar(&amp;cpuprofile, "cpuprofile", "", "write cpu profile to file")
- 	flag.IntVar(&amp;npoints, "npoints", 300000, "number of points to draw")
- 	flag.StringVar(&amp;methodName, "method", "circle", "method")
+</span>     )
+     flag.StringVar(&amp;cpuprofile, "cpuprofile", "", "write cpu profile to file")
+     flag.IntVar(&amp;npoints, "npoints", 300000, "number of points to draw")
+     flag.StringVar(&amp;methodName, "method", "circle", "method")
 <span class="gi">+	flag.IntVar(&amp;workerCount, "workers", 0, "number of workers (if &lt; 0, add GOMAXPROCS)")
-</span> 	flag.Parse()
+</span>     flag.Parse()
  
- 	method := mustFindMethod(methodName)
+     method := mustFindMethod(methodName)
 <span class="gi">+	if workerCount &lt;= 0 {
 +		workerCount += runtime.GOMAXPROCS(0)
 +	}
@@ -785,19 +789,19 @@ index b3a8b02..63f2bb1 100644
 +	}
 +	log.Printf("Worker count: %d", workerCount)
 </span> 
- 	if cpuprofile != "" {
- 		f, err := os.Create(cpuprofile)
+     if cpuprofile != "" {
+         f, err := os.Create(cpuprofile)
 <span class="p">@@ -39,7 +49,9 @@</span> func main() {
  
- 	game := NewGame(worldMap.All(), npoints)
+     game := NewGame(worldMap.All(), npoints)
  
 <span class="gd">-	go AggregatePoints(worldMap, method.pickPoint, game.AddPoint)
 </span><span class="gi">+	for i := 1; i &lt;= workerCount; i++ {
 +		go AggregatePoints(i, worldMap, method.pickPoint, game.AddPoint)
 +	}
 </span> 
- 	ebiten.SetWindowSize(worldHeight, worldWidth)
- 	ebiten.SetWindowTitle("Diffraction-limited aggregation")
+     ebiten.SetWindowSize(worldHeight, worldWidth)
+     ebiten.SetWindowTitle("Diffraction-limited aggregation")
 <span class="gh">diff --git a/worker.go b/worker.go
 index 43abfc6..6a8068a 100644
 </span><span class="gd">--- a/worker.go
@@ -807,19 +811,23 @@ index 43abfc6..6a8068a 100644
  // least until it can no longer pick a point not on the map)
  func AggregatePoints(
 <span class="gi">+	workerNumber int,
-</span> 	worldMap *WorldMap,
- 	pickPoint func() Point,
- 	addPoint func(Point),
+</span>     worldMap *WorldMap,
+     pickPoint func() Point,
+     addPoint func(Point),
 <span class="p">@@ -20,7 +21,7 @@</span> func AggregatePoints(
- 		for worldMap.Contains(p) {
- 			i++
- 			if i == 100 {
+         for worldMap.Contains(p) {
+             i++
+             if i == 100 {
 <span class="gd">-				log.Printf("Stopping")
 </span><span class="gi">+				log.Printf("Worker %d stopping", workerNumber)
-</span> 				return
- 			}
- 			p = pickPoint()
+</span>                 return
+             }
+             p = pickPoint()
 </code></pre></div></div>
+
+<p>Or you can see the new versions of
+<a href="https://github.com/arnodel/go-dla/blob/v3/main.go">main.go</a> and
+<a href="https://github.com/arnodel/go-dla/blob/v3/worker.go">worker.go</a> on github.</p>
 
 <p>Let’s try it!</p>
 
@@ -919,7 +927,8 @@ see if we can optimise this bottleneck.</p>
 
 <h2 id="v4">Version 4 - Branchless Point.Move()</h2>
 
-<p>So we have this method</p>
+<p>So we have this method in
+<a href="https://github.com/arnodel/go-dla/blob/v3/point.go">point.go</a>:</p>
 
 <div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">// Move the point by one step (dir is expected to be 0, 1, 2 or 3).</span>
 <span class="k">func</span> <span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">)</span> <span class="n">Move</span><span class="p">(</span><span class="n">dir</span> <span class="kt">int</span><span class="p">)</span> <span class="n">Point</span> <span class="p">{</span>
@@ -966,23 +975,23 @@ Entering interactive mode <span class="o">(</span><span class="nb">type</span> <
 <span class="o">(</span>pprof<span class="o">)</span> disasm Point.Move
 Total: 93.10s
 ROUTINE <span class="o">========================</span> main.Point.Move
-    29.53s     29.70s <span class="o">(</span>flat, cum<span class="o">)</span> 31.90% of Total
-     1.55s      1.55s  100268110: CBNZ R2, 3<span class="o">(</span>PC<span class="o">)</span>                          <span class="p">;</span>main.Point.Move point.go:12
-     7.44s      7.47s  100268114: ADD <span class="nv">$1</span>, R0, R0                          <span class="p">;</span>main.Point.Move point.go:13
-         <span class="nb">.</span>          <span class="nb">.</span>  100268118: JMP 10<span class="o">(</span>PC<span class="o">)</span>                              <span class="p">;</span>point.go:13
-     860ms      870ms  10026811c: CMP <span class="nv">$1</span>, R2                              <span class="p">;</span>main.Point.Move point.go:14
-         <span class="nb">.</span>          <span class="nb">.</span>  100268120: BNE 3<span class="o">(</span>PC<span class="o">)</span>                               <span class="p">;</span>point.go:14
-     7.28s      7.34s  100268124: SUB <span class="nv">$1</span>, R0, R0                          <span class="p">;</span>main.Point.Move point.go:15
-         <span class="nb">.</span>          <span class="nb">.</span>  100268128: JMP 6<span class="o">(</span>PC<span class="o">)</span>                               <span class="p">;</span>point.go:15
-     1.48s      1.49s  10026812c: CMP <span class="nv">$2</span>, R2                              <span class="p">;</span>main.Point.Move point.go:16
-         <span class="nb">.</span>          <span class="nb">.</span>  100268130: BNE 3<span class="o">(</span>PC<span class="o">)</span>                               <span class="p">;</span>point.go:16
-     3.81s      3.83s  100268134: ADD <span class="nv">$1</span>, R1, R1                          <span class="p">;</span>main.Point.Move point.go:17
-         <span class="nb">.</span>          <span class="nb">.</span>  100268138: JMP 2<span class="o">(</span>PC<span class="o">)</span>                               <span class="p">;</span>point.go:17
-     4.02s      4.04s  10026813c: SUB <span class="nv">$1</span>, R1, R1                          <span class="p">;</span>main.Point.Move point.go:19
-     3.09s      3.11s  100268140: RET                                     <span class="p">;</span>main.Point.Move point.go:21
-         <span class="nb">.</span>          <span class="nb">.</span>  100268144: ?                                       <span class="p">;</span>point.go:21
-         <span class="nb">.</span>          <span class="nb">.</span>  100268148: ?
-         <span class="nb">.</span>          <span class="nb">.</span>  10026814c: ?
+ 29.53s     29.70s <span class="o">(</span>flat, cum<span class="o">)</span> 31.90% of Total
+  1.55s      1.55s  100268110: CBNZ R2, 3<span class="o">(</span>PC<span class="o">)</span>     <span class="p">;</span>main.Point.Move point.go:12
+  7.44s      7.47s  100268114: ADD <span class="nv">$1</span>, R0, R0     <span class="p">;</span>main.Point.Move point.go:13
+      <span class="nb">.</span>          <span class="nb">.</span>  100268118: JMP 10<span class="o">(</span>PC<span class="o">)</span>         <span class="p">;</span>point.go:13
+  860ms      870ms  10026811c: CMP <span class="nv">$1</span>, R2         <span class="p">;</span>main.Point.Move point.go:14
+      <span class="nb">.</span>          <span class="nb">.</span>  100268120: BNE 3<span class="o">(</span>PC<span class="o">)</span>          <span class="p">;</span>point.go:14
+  7.28s      7.34s  100268124: SUB <span class="nv">$1</span>, R0, R0     <span class="p">;</span>main.Point.Move point.go:15
+      <span class="nb">.</span>          <span class="nb">.</span>  100268128: JMP 6<span class="o">(</span>PC<span class="o">)</span>          <span class="p">;</span>point.go:15
+  1.48s      1.49s  10026812c: CMP <span class="nv">$2</span>, R2         <span class="p">;</span>main.Point.Move point.go:16
+      <span class="nb">.</span>          <span class="nb">.</span>  100268130: BNE 3<span class="o">(</span>PC<span class="o">)</span>          <span class="p">;</span>point.go:16
+  3.81s      3.83s  100268134: ADD <span class="nv">$1</span>, R1, R1     <span class="p">;</span>main.Point.Move point.go:17
+      <span class="nb">.</span>          <span class="nb">.</span>  100268138: JMP 2<span class="o">(</span>PC<span class="o">)</span>          <span class="p">;</span>point.go:17
+  4.02s      4.04s  10026813c: SUB <span class="nv">$1</span>, R1, R1     <span class="p">;</span>main.Point.Move point.go:19
+  3.09s      3.11s  100268140: RET                <span class="p">;</span>main.Point.Move point.go:21
+      <span class="nb">.</span>          <span class="nb">.</span>  100268144: ?                  <span class="p">;</span>point.go:21
+      <span class="nb">.</span>          <span class="nb">.</span>  100268148: ?
+      <span class="nb">.</span>          <span class="nb">.</span>  10026814c: ?
 <span class="o">(</span>pprof<span class="o">)</span>
 </code></pre></div></div>
 
@@ -993,7 +1002,8 @@ ROUTINE <span class="o">========================</span> main.Point.Move
   <li>3 plains jumps, to break out of the first 3 switch cases.</li>
 </ul>
 
-<p>So let’s see if <code class="language-plaintext highlighter-rouge">Point.Move(dir int)</code> can be improved.  It takes <code class="language-plaintext highlighter-rouge">dir</code> which between 0 and 3, really 2 bits <code class="language-plaintext highlighter-rouge">a</code> and <code class="language-plaintext highlighter-rouge">b</code>, which we could write as</p>
+<p>So let’s see if <code class="language-plaintext highlighter-rouge">Point.Move(dir int)</code> can be improved.  It takes <code class="language-plaintext highlighter-rouge">dir</code> which
+between 0 and 3, really 2 bits <code class="language-plaintext highlighter-rouge">a</code> and <code class="language-plaintext highlighter-rouge">b</code>, which we could write as</p>
 
 <div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="n">a</span> <span class="o">:=</span> <span class="n">dir</span> <span class="o">&amp;</span> <span class="m">1</span>
     <span class="n">b</span> <span class="o">:=</span> <span class="n">dir</span> <span class="o">&gt;&gt;</span> <span class="m">1</span>
@@ -1043,15 +1053,16 @@ ROUTINE <span class="o">========================</span> main.Point.Move
   </tbody>
 </table>
 
-<p>The last column in the table above shows us that we can move <code class="language-plaintext highlighter-rouge">p</code> by one step in exactly one direction as follows</p>
+<p>The last column in the table above shows us that we can move <code class="language-plaintext highlighter-rouge">p</code> by one step in
+exactly one direction as follows</p>
 
 <div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">)</span> <span class="n">Move</span><span class="p">(</span><span class="n">dir</span> <span class="kt">int</span><span class="p">)</span> <span class="n">Point</span> <span class="p">{</span>
-	<span class="n">a</span> <span class="o">:=</span> <span class="n">dir</span> <span class="o">&amp;</span> <span class="m">1</span>
-	<span class="n">b</span> <span class="o">:=</span> <span class="n">dir</span> <span class="o">&gt;&gt;</span> <span class="m">1</span>
-	<span class="k">return</span> <span class="n">Point</span><span class="p">{</span>
-		<span class="n">X</span><span class="o">:</span> <span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">+</span> <span class="n">a</span> <span class="o">-</span> <span class="n">b</span><span class="p">,</span>
-		<span class="n">Y</span><span class="o">:</span> <span class="n">p</span><span class="o">.</span><span class="n">Y</span> <span class="o">+</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">-</span> <span class="m">1</span><span class="p">,</span>
-	<span class="p">}</span>
+    <span class="n">a</span> <span class="o">:=</span> <span class="n">dir</span> <span class="o">&amp;</span> <span class="m">1</span>
+    <span class="n">b</span> <span class="o">:=</span> <span class="n">dir</span> <span class="o">&gt;&gt;</span> <span class="m">1</span>
+    <span class="k">return</span> <span class="n">Point</span><span class="p">{</span>
+        <span class="n">X</span><span class="o">:</span> <span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">+</span> <span class="n">a</span> <span class="o">-</span> <span class="n">b</span><span class="p">,</span>
+        <span class="n">Y</span><span class="o">:</span> <span class="n">p</span><span class="o">.</span><span class="n">Y</span> <span class="o">+</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">-</span> <span class="m">1</span><span class="p">,</span>
+    <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div></div>
 
@@ -1087,15 +1098,15 @@ Entering interactive mode <span class="o">(</span><span class="nb">type</span> <
 <span class="o">(</span>pprof<span class="o">)</span> disasm Point.Move
 Total: 60.06s
 ROUTINE <span class="o">========================</span> main.Point.Move
-     1.52s      1.53s <span class="o">(</span>flat, cum<span class="o">)</span>  2.55% of Total
-     1.52s      1.53s  100268130: AND <span class="nv">$1</span>, R2, R3                          <span class="p">;</span>main.Point.Move point.go:11
-         <span class="nb">.</span>          <span class="nb">.</span>  100268134: ADD R0, R3, R4                          <span class="p">;</span>point.go:14
-         <span class="nb">.</span>          <span class="nb">.</span>  100268138: SUB R2-&gt;1, R4, R0
-         <span class="nb">.</span>          <span class="nb">.</span>  10026813c: ADD R1, R3, R3                          <span class="p">;</span>point.go:15
-         <span class="nb">.</span>          <span class="nb">.</span>  100268140: ADD R2-&gt;1, R3, R2
-         <span class="nb">.</span>          <span class="nb">.</span>  100268144: SUB <span class="nv">$1</span>, R2, R1
-         <span class="nb">.</span>          <span class="nb">.</span>  100268148: RET                                     <span class="p">;</span>point.go:13
-         <span class="nb">.</span>          <span class="nb">.</span>  10026814c: ?
+ 1.52s      1.53s <span class="o">(</span>flat, cum<span class="o">)</span>  2.55% of Total
+ 1.52s      1.53s  100268130: AND <span class="nv">$1</span>, R2, R3       <span class="p">;</span>main.Point.Move point.go:11
+     <span class="nb">.</span>          <span class="nb">.</span>  100268134: ADD R0, R3, R4       <span class="p">;</span>point.go:14
+     <span class="nb">.</span>          <span class="nb">.</span>  100268138: SUB R2-&gt;1, R4, R0
+     <span class="nb">.</span>          <span class="nb">.</span>  10026813c: ADD R1, R3, R3       <span class="p">;</span>point.go:15
+     <span class="nb">.</span>          <span class="nb">.</span>  100268140: ADD R2-&gt;1, R3, R2
+     <span class="nb">.</span>          <span class="nb">.</span>  100268144: SUB <span class="nv">$1</span>, R2, R1
+     <span class="nb">.</span>          <span class="nb">.</span>  100268148: RET                  <span class="p">;</span>point.go:13
+     <span class="nb">.</span>          <span class="nb">.</span>  10026814c: ?
 <span class="o">(</span>pprof<span class="o">)</span> 
 </code></pre></div></div>
 
@@ -1106,13 +1117,115 @@ example of this phenomenon.  In our case, <code class="language-plaintext highli
 predictor must be completely useless.  Removing the branches altogether seems to
 speed up this function by a factor of about 20!</p>
 
+<p>All very nice but what’s the next bottleneck?</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ go tool pprof <span class="nt">-http</span> :8000 v4.pprof
+Serving web UI on http://localhost:8000
+</code></pre></div></div>
+
+<p>As previously I’ve trimmed off the irrelevant parts:</p>
+
+<p><a href="/marooned//assets/dla-v4-pprof.png"><img src="/marooned//assets/dla-v4-pprof.png" alt="v4 profiling" style="display:block; margin-left:auto; margin-right:auto; width: 80%" /></a></p>
+
+<p>There is clearly something going on with generating random numbers.</p>
+
 <h2 id="v5">Version 5 - Stop wasting random numbers</h2>
 
-<p>Every time we draw a random number to chose a direction for a random walk, that
-requires only 2 random bits but we generate 64.  That turns out to be the main
-bottleneck at this point.</p>
+<p>Let’s look more closely at random number generation in <code class="language-plaintext highlighter-rouge">AggregatePoints</code>:</p>
 
-<p>Coming soon</p>
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        <span class="k">for</span> <span class="o">!</span><span class="n">worldMap</span><span class="o">.</span><span class="n">Neighbours</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Move</span><span class="p">(</span><span class="n">rand</span><span class="o">.</span><span class="n">Intn</span><span class="p">(</span><span class="m">4</span><span class="p">))</span><span class="o">.</span><span class="n">Clamp</span><span class="p">()</span>
+        <span class="p">}</span>
+</code></pre></div></div>
+
+<p>Every time we draw a random number to chose a direction for a random walk, that
+requires only 2 random bits for a direction but we generate 64. And the graph
+above tells us that this random number generation is the main bottleneck in our
+program.</p>
+
+<p>That means we are being very wasteful with the precious resource that is random
+bits!  Every time we need 2, we make 64 and throw away 62.  Surely we can
+slightly rework this code so that it finishes off all the random bits it asks
+for.  Something like this</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">type</span> <span class="n">RandDirSource</span> <span class="k">struct</span> <span class="p">{</span>
+	<span class="n">r</span> <span class="kt">uint64</span>
+	<span class="n">i</span> <span class="kt">int</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="p">(</span><span class="n">s</span> <span class="o">*</span><span class="n">RandDirSource</span><span class="p">)</span> <span class="n">Dir</span><span class="p">()</span> <span class="kt">int</span> <span class="p">{</span>
+	<span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">i</span> <span class="o">==</span> <span class="m">0</span> <span class="p">{</span>
+		<span class="n">s</span><span class="o">.</span><span class="n">i</span> <span class="o">=</span> <span class="m">32</span>
+		<span class="n">s</span><span class="o">.</span><span class="n">r</span> <span class="o">=</span> <span class="n">rand</span><span class="o">.</span><span class="n">Uint64</span><span class="p">()</span>
+	<span class="p">}</span>
+	<span class="n">dir</span> <span class="o">:=</span> <span class="kt">int</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">r</span> <span class="o">%</span> <span class="m">4</span><span class="p">)</span>
+	<span class="n">s</span><span class="o">.</span><span class="n">i</span><span class="o">--</span>
+	<span class="n">s</span><span class="o">.</span><span class="n">r</span> <span class="o">&gt;&gt;=</span> <span class="m">2</span>
+	<span class="k">return</span> <span class="n">dir</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>if <code class="language-plaintext highlighter-rouge">r</code> is a <code class="language-plaintext highlighter-rouge">*RandomDirSource</code>, <code class="language-plaintext highlighter-rouge">r.Dir()</code> gives you an <code class="language-plaintext highlighter-rouge">int</code> containing 2 random
+bits, but keeps hold of the remaning random bits it asks for.  This way you can
+ask <code class="language-plaintext highlighter-rouge">r</code> for a random direction 32 times before it needs to generate a new 64 bit
+random number!  Let’s make <code class="language-plaintext highlighter-rouge">AggregatePoints()</code> use it insteand of <code class="language-plaintext highlighter-rouge">rand.Intn(4)</code>:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">AggregatePoints</span><span class="p">(</span>
+	<span class="n">workerNumber</span> <span class="kt">int</span><span class="p">,</span>
+	<span class="n">worldMap</span> <span class="o">*</span><span class="n">WorldMap</span><span class="p">,</span>
+	<span class="n">pickPoint</span> <span class="k">func</span><span class="p">()</span> <span class="n">Point</span><span class="p">,</span>
+	<span class="n">addPoint</span> <span class="k">func</span><span class="p">(</span><span class="n">Point</span><span class="p">),</span>
+<span class="p">)</span> <span class="p">{</span>
+	<span class="k">var</span> <span class="n">randDirSrc</span> <span class="n">RandDirSource</span>
+	<span class="k">for</span> <span class="p">{</span>
+		<span class="n">p</span> <span class="o">:=</span> <span class="n">pickPoint</span><span class="p">()</span>
+		<span class="n">i</span> <span class="o">:=</span> <span class="m">0</span>
+		<span class="k">for</span> <span class="n">worldMap</span><span class="o">.</span><span class="n">Contains</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="p">{</span>
+			<span class="n">i</span><span class="o">++</span>
+			<span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="m">100</span> <span class="p">{</span>
+				<span class="n">log</span><span class="o">.</span><span class="n">Printf</span><span class="p">(</span><span class="s">"Worker %d stopping"</span><span class="p">,</span> <span class="n">workerNumber</span><span class="p">)</span>
+				<span class="k">return</span>
+			<span class="p">}</span>
+			<span class="n">p</span> <span class="o">=</span> <span class="n">pickPoint</span><span class="p">()</span>
+		<span class="p">}</span>
+		<span class="k">for</span> <span class="o">!</span><span class="n">worldMap</span><span class="o">.</span><span class="n">Neighbours</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="p">{</span>
+			<span class="n">p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Move</span><span class="p">(</span><span class="n">randDirSrc</span><span class="o">.</span><span class="n">Dir</span><span class="p">())</span><span class="o">.</span><span class="n">Clamp</span><span class="p">()</span>
+		<span class="p">}</span>
+		<span class="n">worldMap</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+		<span class="n">addPoint</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ go run <span class="nb">.</span> <span class="nt">-cpuprofile</span> v5.pprof
+2024/10/15 20:30:28 Worker count: 10
+2024/10/15 20:30:28 Points: 1000 - 146.306ms
+2024/10/15 20:30:28 Points: 2000 - 202.060042ms
+2024/10/15 20:30:28 Points: 3000 - 315.281834ms
+2024/10/15 20:30:28 Points: 4000 - 403.433167ms
+<span class="o">[</span>...]
+2024/10/15 20:30:32 Points: 297000 - 4.080072375s
+2024/10/15 20:30:32 Points: 298000 - 4.08042025s
+2024/10/15 20:30:32 Points: 299000 - 4.080882167s
+2024/10/15 20:30:32 Points: 300000 - 4.08144575s
+</code></pre></div></div>
+
+<p>We’ve increase the speed of our program by another factor of 1.9.  It’s quite
+exciting that after four rounds of optimisation, we can still easily find some
+substantial improvements… So let’s not stop here!  The previous pprof graph
+hinted that the next bottleneck was going <code class="language-plaintext highlighter-rouge">WorldMap.Neighbours()</code> but let’s check.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ go tool pprof <span class="nt">-http</span> :8000 v5.pprof
+Serving web UI on http://localhost:8000
+</code></pre></div></div>
+
+<p><a href="/marooned//assets/dla-v5-pprof.png"><img src="/marooned//assets/dla-v5-pprof.png" alt="v5 profiling" style="display:block; margin-left:auto; margin-right:auto; width: 80%" /></a></p>
+
+<p>As expected, <code class="language-plaintext highlighter-rouge">WorldMap.Neighbours()</code> is the new main bottleneck, simply because
+it calls <code class="language-plaintext highlighter-rouge">WorldMap.Contains()</code> 4 times.  Even though there is a branch in it, it
+probably gets predicted correctly most of the time (as most of the time the
+particle will not be on the edge of the world) so I’m not sure that is the cause
+of the slowness.  Probably having to fetch 4 values from memory just takes time.</p>
 
 <h2 id="v6">Version 6 - Precompute neighbours</h2>
 
