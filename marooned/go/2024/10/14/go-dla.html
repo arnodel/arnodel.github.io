@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Fun with diffusion-limited aggregation | Marooned on Github</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Fun with diffusion-limited aggregation" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Executive Summary" />
+<meta property="og:description" content="Executive Summary" />
+<link rel="canonical" href="/marooned/go/2024/10/14/go-dla.html" />
+<meta property="og:url" content="/marooned/go/2024/10/14/go-dla.html" />
+<meta property="og:site_name" content="Marooned on Github" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2024-10-14T18:13:14+01:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Fun with diffusion-limited aggregation" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-10-14T18:13:14+01:00","datePublished":"2024-10-14T18:13:14+01:00","description":"Executive Summary","headline":"Fun with diffusion-limited aggregation","mainEntityOfPage":{"@type":"WebPage","@id":"/marooned/go/2024/10/14/go-dla.html"},"url":"/marooned/go/2024/10/14/go-dla.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/marooned/assets/main.css"><link type="application/atom+xml" rel="alternate" href="/marooned/feed.xml" title="Marooned on Github" /><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+</head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/marooned/">Marooned on Github</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/marooned/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Fun with diffusion-limited aggregation</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2024-10-14T18:13:14+01:00" itemprop="datePublished">Oct 14, 2024
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <h2 id="executive-summary">Executive Summary</h2>
+
+<p>My son got me interested in
+<a href="https://en.wikipedia.org/wiki/Diffusion-limited_aggregation">DLA</a> (see
+<a href="#intro">intro</a>).  I made a program to draw some pretty pictures, benchmarked it
+(for aggregating 300000 particles on a 1000x1000 canvas), profiled it and
+optimised it in 9 different ways to go <strong>from 8min16s to 0.859s</strong>.  Along the way I explored the <a href="#maths">Maths</a>
+about random walks and found useful properties that helped get the program to go
+faster.</p>
+
+<p>This long post tells the story of all those optimisations.  I don’t think any of
+them is amazing, but I found it striking that I could apply so many different
+strategies to speed up a seemingly simple program very significantly - in fact
+by a factor of 600!  Also I had a lot of fun on this journey and I feel like
+sharing it…</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Version</th>
+      <th>Optimisation</th>
+      <th>benchmark time</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><a href="#v1">v1</a></td>
+      <td>None at all</td>
+      <td>8min16s</td>
+    </tr>
+    <tr>
+      <td><a href="#v2">v2</a></td>
+      <td>Better data structure for world map</td>
+      <td>1min35s</td>
+    </tr>
+    <tr>
+      <td><a href="#v3">v3</a></td>
+      <td>Use all CPU cores</td>
+      <td>12.7s</td>
+    </tr>
+    <tr>
+      <td><a href="#v4">v4</a></td>
+      <td>Remove branching on hot path</td>
+      <td>7.86s</td>
+    </tr>
+    <tr>
+      <td><a href="#v5">v5</a></td>
+      <td>Do not waste a random bit</td>
+      <td>Coming soon…</td>
+    </tr>
+    <tr>
+      <td><a href="#v6">v6</a></td>
+      <td>Precompute neighbours</td>
+      <td>Coming soon…</td>
+    </tr>
+    <tr>
+      <td><a href="#v7">v7</a></td>
+      <td>Speed up hot path by splitting a function to inline it</td>
+      <td>Coming soon…</td>
+    </tr>
+    <tr>
+      <td><a href="#v8">v8</a></td>
+      <td>Speed up hot path by merging tow functions</td>
+      <td>Coming soon…</td>
+    </tr>
+    <tr>
+      <td><a href="#v9">v9</a></td>
+      <td>Use the power of Maths!</td>
+      <td>0.859s</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="intro">What is diffusion-limited aggregation?</h2>
+
+<p>According to <a href="https://en.wikipedia.org/wiki/Diffusion-limited_aggregation">Wikipedia</a>:</p>
+
+<blockquote>
+  <p>Diffusion-limited aggregation (DLA) is the process whereby particles
+undergoing a random walk due to Brownian motion cluster together to form
+aggregates of such particles.</p>
+</blockquote>
+
+<p>Here is an animation to help understand what that means.  The white squares are
+fixed particles and the red ones are in motion.  They follow a Brownian motion,
+which is simulated here by a random walk, that is at each moment they are
+equally likely to move up, down, left or right.  Whenever a moving particule
+finds itself next to a fixed particle, it becomes fixed.  This way a structure
+slowly builds.  The process started off with the horizontal line at the bottom
+as the “seed”.  The video starts some time after that because I don’t want it to
+be too long!</p>
+
+<p>
+<video style="display: block; margin-left: auto; margin-right: auto" src="/marooned//assets/dla-animation.webm" width="500" height="500" controls=""></video>
+</p>
+
+<p>To get an idea of the number of steps required, I display the number of
+aggregated particles and the total number of moves made by all the particles at
+any moment.  You can see that it takes 100000 moves to aggregate 62 points!  And
+this is on a tiny map of 50 by 50 squares.  Imagine the number of moves required
+to create the image below, which is 1000 by 1000 pixels, which is 400 times
+bigger than the one above.</p>
+
+<p><a href="/marooned//assets/dla-example-1.png"><img src="/marooned//assets/dla-example-1.png" alt="example" style="display:block; margin-left:auto; margin-right:auto; width: 80%" /></a></p>
+
+<p>My son recently told me about DLA and showed me a program he made in Python that
+draws nice pictures like the one above.  I thought it was very nice and decided
+I would write a similar program in Go.  My aims were as follows.</p>
+
+<ol>
+  <li>Write it in Go with no with no dependencies apart from displaying graphics.</li>
+  <li>Show progress in real time (otherwise it’s less fun).</li>
+  <li>Make it as fast as I reasonably can.</li>
+</ol>
+
+<p>For (1) I’ve decided to use <a href="https://ebitengine.org/">Ebitengine</a> because I’ve
+used it before and it’s very nice in my opinion.  For (3), I’m going to use
+<a href="https://pkg.go.dev/runtime/pprof">pprof</a>.  I often use it but mostly in the
+most basic manner, perhaps this time I can learn some more advanced features!</p>
+
+<h2 id="v1">Version 1 - the simplest version that works</h2>
+
+<p>This is how it’s going to work.</p>
+<ul>
+  <li>There will be an event loop that defines a channel of “pending points”.  Each
+frame, the event loop will collect as many pending points as possible without
+dropping the frame rate (60 fps) and add them to the forming image.</li>
+  <li>There will be one or more goroutines moving particles about and each time one
+gets stuck to the forming structure, it will send the point on the “pending
+points” channel and start with a new particle.</li>
+  <li>There will be a data structure that represents the “world” with all existing
+points on it (and perhaps extra useful data), we will call this the “world
+map”.</li>
+</ul>
+
+<p>We need to define some constants, let’s put them in constants.go:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">const</span> <span class="p">(</span>
+    <span class="n">worldWidth</span>  <span class="o">=</span> <span class="m">1000</span>
+    <span class="n">worldHeight</span> <span class="o">=</span> <span class="m">1000</span>
+
+    <span class="n">maxPendingPoints</span> <span class="o">=</span> <span class="m">5000</span>
+<span class="p">)</span>
+</code></pre></div></div>
+
+<p>I make <code class="language-plaintext highlighter-rouge">worldWidth</code> and <code class="language-plaintext highlighter-rouge">worldHeight</code> constants because I expect that they will
+be involved in calculations that need to be optimised.  As for
+<code class="language-plaintext highlighter-rouge">maxPendingPoints</code>, I expect I won’t have to change it much.  A value of 5000
+seems generous, as to fill it you’d have to be able to calculate more than 5000
+points every 1/60th of a second…</p>
+
+<p>It will help to have a notion of <code class="language-plaintext highlighter-rouge">Point</code>, let’s put it in point.go:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">type</span> <span class="n">Point</span> <span class="k">struct</span> <span class="p">{</span>
+    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="kt">int</span>
+<span class="p">}</span>
+
+<span class="c">// Move the point by one step (dir is expected to be 0, 1, 2 or 3).</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">)</span> <span class="n">Move</span><span class="p">(</span><span class="n">dir</span> <span class="kt">int</span><span class="p">)</span> <span class="n">Point</span> <span class="p">{</span>
+    <span class="k">switch</span> <span class="n">dir</span> <span class="p">{</span>
+    <span class="k">case</span> <span class="m">0</span><span class="o">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">X</span><span class="o">++</span>
+    <span class="k">case</span> <span class="m">1</span><span class="o">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">X</span><span class="o">--</span>
+    <span class="k">case</span> <span class="m">2</span><span class="o">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">Y</span><span class="o">++</span>
+    <span class="k">default</span><span class="o">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">Y</span><span class="o">--</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">p</span>
+<span class="p">}</span>
+
+<span class="c">// Clamp to the point to within the confines of the world.</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">)</span> <span class="n">Clamp</span><span class="p">()</span> <span class="n">Point</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">&lt;</span> <span class="m">0</span> <span class="p">{</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="m">0</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">&gt;=</span> <span class="n">worldWidth</span> <span class="p">{</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="n">worldWidth</span> <span class="o">-</span> <span class="m">1</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">Y</span> <span class="o">&lt;</span> <span class="m">0</span> <span class="p">{</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">Y</span> <span class="o">=</span> <span class="m">0</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">Y</span> <span class="o">&gt;=</span> <span class="n">worldHeight</span> <span class="p">{</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">Y</span> <span class="o">=</span> <span class="n">worldHeight</span> <span class="o">-</span> <span class="m">1</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">p</span>
+<span class="p">}</span>
+
+<span class="c">// Translate the point by x and y.</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">)</span> <span class="n">Translate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="kt">int</span><span class="p">)</span> <span class="n">Point</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">Point</span><span class="p">{</span><span class="n">X</span><span class="o">:</span> <span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">+</span> <span class="n">x</span><span class="p">,</span> <span class="n">Y</span><span class="o">:</span> <span class="n">p</span><span class="o">.</span><span class="n">Y</span> <span class="o">+</span> <span class="n">y</span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>The “world map” will also be easier to manipulate if it has its own type.  Let’s put it in worldmap.go:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="s">"iter"</span>
+
+<span class="k">type</span> <span class="n">WorldMap</span> <span class="k">map</span><span class="p">[</span><span class="n">Point</span><span class="p">]</span><span class="k">struct</span><span class="p">{}</span>
+
+<span class="c">// Add p to the map.</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">m</span> <span class="n">WorldMap</span><span class="p">)</span> <span class="n">Add</span><span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">m</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="k">struct</span><span class="p">{}{}</span>
+<span class="p">}</span>
+
+<span class="c">// Contains returns true if p was added to the map.</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">m</span> <span class="n">WorldMap</span><span class="p">)</span> <span class="n">Contains</span><span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">)</span> <span class="kt">bool</span> <span class="p">{</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">ok</span> <span class="o">:=</span> <span class="n">m</span><span class="p">[</span><span class="n">p</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">ok</span>
+<span class="p">}</span>
+
+<span class="c">// Neighbours returns true if the map contains a point one step away from p.</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">m</span> <span class="n">WorldMap</span><span class="p">)</span> <span class="n">Neighbours</span><span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">)</span> <span class="kt">bool</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">m</span><span class="o">.</span><span class="n">Contains</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">Translate</span><span class="p">(</span><span class="m">1</span><span class="p">,</span> <span class="m">0</span><span class="p">))</span> <span class="o">||</span>
+        <span class="n">m</span><span class="o">.</span><span class="n">Contains</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">Translate</span><span class="p">(</span><span class="o">-</span><span class="m">1</span><span class="p">,</span> <span class="m">0</span><span class="p">))</span> <span class="o">||</span>
+        <span class="n">m</span><span class="o">.</span><span class="n">Contains</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">Translate</span><span class="p">(</span><span class="m">0</span><span class="p">,</span> <span class="m">1</span><span class="p">))</span> <span class="o">||</span>
+        <span class="n">m</span><span class="o">.</span><span class="n">Contains</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">Translate</span><span class="p">(</span><span class="m">0</span><span class="p">,</span> <span class="o">-</span><span class="m">1</span><span class="p">))</span>
+<span class="p">}</span>
+
+<span class="c">// All iterates over all the points contained in the map.</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">m</span> <span class="n">WorldMap</span><span class="p">)</span> <span class="n">All</span><span class="p">()</span> <span class="n">iter</span><span class="o">.</span><span class="n">Seq</span><span class="p">[</span><span class="n">Point</span><span class="p">]</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">func</span><span class="p">(</span><span class="n">yield</span> <span class="k">func</span><span class="p">(</span><span class="n">Point</span><span class="p">)</span> <span class="kt">bool</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="o">:=</span> <span class="k">range</span> <span class="n">m</span> <span class="p">{</span>
+            <span class="k">if</span> <span class="o">!</span><span class="n">yield</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">return</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Next we need an avent loop to draw the world.  It is a type that implements the
+<a href="https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2#Game">ebitengine.Game</a>. For
+an intro to how that works, see the <a href="https://ebitengine.org/en/tour/hello_world.html">Hello,
+World!</a> example.  Everything
+happens in the <code class="language-plaintext highlighter-rouge">Update()</code> method, which is called every tick (1/60th of a
+second).  This methods gets as many points from the channel of pending points as
+possible (until in either runs out of points or runs out of time) and draws them
+on the world image.</p>
+
+<p>An <code class="language-plaintext highlighter-rouge">AddPoint()</code> method is also exposed - this is what the workers will call when
+one of their moving particles has aggregated.</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="p">(</span>
+    <span class="s">"image/color"</span>
+    <span class="s">"iter"</span>
+    <span class="s">"log"</span>
+    <span class="s">"runtime/pprof"</span>
+    <span class="s">"time"</span>
+
+    <span class="s">"github.com/hajimehoshi/ebiten/v2"</span>
+<span class="p">)</span>
+
+<span class="k">type</span> <span class="n">Game</span> <span class="k">struct</span> <span class="p">{</span>
+    <span class="n">worldImage</span> <span class="o">*</span><span class="n">ebiten</span><span class="o">.</span><span class="n">Image</span> <span class="c">// We draw the world here</span>
+    <span class="n">pending</span>    <span class="k">chan</span> <span class="n">Point</span>    <span class="c">// Channel where workers put points to draw</span>
+    <span class="n">pointCount</span> <span class="kt">int</span>           <span class="c">// Points drawn so far</span>
+    <span class="n">maxPoints</span>  <span class="kt">int</span>           <span class="c">// Total number of points to draw</span>
+    <span class="n">start</span>      <span class="n">time</span><span class="o">.</span><span class="n">Time</span>     <span class="c">// When the game started (to log timings)</span>
+<span class="p">}</span>
+
+<span class="c">// NewGame returns a new game where the seeds are initialPoints.</span>
+<span class="k">func</span> <span class="n">NewGame</span><span class="p">(</span><span class="n">initialPoints</span> <span class="n">iter</span><span class="o">.</span><span class="n">Seq</span><span class="p">[</span><span class="n">Point</span><span class="p">],</span> <span class="n">maxPoints</span> <span class="kt">int</span><span class="p">)</span> <span class="o">*</span><span class="n">Game</span> <span class="p">{</span>
+    <span class="n">game</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="n">Game</span><span class="p">{</span>
+        <span class="n">worldImage</span><span class="o">:</span> <span class="n">ebiten</span><span class="o">.</span><span class="n">NewImage</span><span class="p">(</span><span class="n">worldWidth</span><span class="p">,</span> <span class="n">worldHeight</span><span class="p">),</span>
+        <span class="n">pending</span><span class="o">:</span>    <span class="nb">make</span><span class="p">(</span><span class="k">chan</span> <span class="n">Point</span><span class="p">,</span> <span class="n">maxPendingPoints</span><span class="p">),</span>
+        <span class="n">maxPoints</span><span class="o">:</span>  <span class="n">maxPoints</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="o">:=</span> <span class="k">range</span> <span class="n">initialPoints</span> <span class="p">{</span>
+        <span class="n">game</span><span class="o">.</span><span class="n">worldImage</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">Y</span><span class="p">,</span> <span class="n">color</span><span class="o">.</span><span class="n">White</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="n">game</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">Now</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">game</span>
+<span class="p">}</span>
+
+<span class="c">// Update implements ebitengine.Game.Update().</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">g</span> <span class="o">*</span><span class="n">Game</span><span class="p">)</span> <span class="n">Update</span><span class="p">()</span> <span class="kt">error</span> <span class="p">{</span>
+    <span class="k">var</span> <span class="p">(</span>
+        <span class="n">i</span>  <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">pointCount</span>
+        <span class="n">n</span>  <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">maxPoints</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">Now</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="n">n</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="no">nil</span>
+    <span class="p">}</span>
+    <span class="k">defer</span> <span class="k">func</span><span class="p">()</span> <span class="p">{</span> <span class="n">g</span><span class="o">.</span><span class="n">pointCount</span> <span class="o">=</span> <span class="n">i</span> <span class="p">}()</span>
+    <span class="k">for</span> <span class="n">i</span><span class="o">%</span><span class="m">100</span> <span class="o">!=</span> <span class="m">0</span> <span class="o">||</span> <span class="n">time</span><span class="o">.</span><span class="n">Since</span><span class="p">(</span><span class="n">t0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="m">10</span><span class="o">*</span><span class="n">time</span><span class="o">.</span><span class="n">Millisecond</span> <span class="p">{</span>
+        <span class="c">// ^ i%100 is there so don't call time.Since(t0) too much</span>
+        <span class="k">select</span> <span class="p">{</span>
+        <span class="k">case</span> <span class="n">p</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="n">g</span><span class="o">.</span><span class="n">pending</span><span class="o">:</span>
+            <span class="c">// Start white and gradually fade out to black</span>
+            <span class="n">g</span><span class="o">.</span><span class="n">worldImage</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">Y</span><span class="p">,</span>
+                <span class="n">color</span><span class="o">.</span><span class="n">Gray16</span><span class="p">{</span><span class="n">Y</span><span class="o">:</span> <span class="kt">uint16</span><span class="p">(</span><span class="m">0xFFFF</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="n">i</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span><span class="p">)},</span>
+            <span class="p">)</span>
+            <span class="n">i</span><span class="o">++</span>
+            <span class="k">if</span> <span class="n">i</span><span class="o">%</span><span class="m">1000</span> <span class="o">==</span> <span class="m">0</span> <span class="p">{</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">Printf</span><span class="p">(</span><span class="s">"Points: %d - %s"</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">Since</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">start</span><span class="p">))</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="n">n</span> <span class="p">{</span>
+                <span class="n">pprof</span><span class="o">.</span><span class="n">StopCPUProfile</span><span class="p">()</span>
+                <span class="k">return</span> <span class="no">nil</span>
+            <span class="p">}</span>
+        <span class="k">default</span><span class="o">:</span>
+            <span class="k">return</span> <span class="no">nil</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">Printf</span><span class="p">(</span><span class="s">"Ran out of time in Update loop after %d points"</span><span class="p">,</span> <span class="n">i</span><span class="o">-</span><span class="n">g</span><span class="o">.</span><span class="n">pointCount</span><span class="p">)</span>
+    <span class="k">return</span> <span class="no">nil</span>
+<span class="p">}</span>
+
+<span class="c">// Draw implements ebitengine.Game.Draw().</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">g</span> <span class="o">*</span><span class="n">Game</span><span class="p">)</span> <span class="n">Draw</span><span class="p">(</span><span class="n">screen</span> <span class="o">*</span><span class="n">ebiten</span><span class="o">.</span><span class="n">Image</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">screen</span><span class="o">.</span><span class="n">DrawImage</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">worldImage</span><span class="p">,</span> <span class="no">nil</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="c">// Layout implements ebitengine.Game.Layout().</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">g</span> <span class="o">*</span><span class="n">Game</span><span class="p">)</span> <span class="n">Layout</span><span class="p">(</span><span class="n">outsideWidth</span><span class="p">,</span> <span class="n">outsideHeight</span> <span class="kt">int</span><span class="p">)</span> <span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">worldWidth</span><span class="p">,</span> <span class="n">worldHeight</span>
+<span class="p">}</span>
+
+<span class="c">// AddPoint adds a point to the pending points to draw.</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">g</span> <span class="o">*</span><span class="n">Game</span><span class="p">)</span> <span class="n">AddPoint</span><span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">g</span><span class="o">.</span><span class="n">pending</span> <span class="o">&lt;-</span> <span class="n">p</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>All that remains to do is to have a worker that sets points in motion and
+detects when they get aggregated.  Let’s do it the simplest way we can do it, in
+worker.go.  Note that <code class="language-plaintext highlighter-rouge">worldMap</code> is a pointer, which is not required in our
+current implementation but may be useful if we change the <code class="language-plaintext highlighter-rouge">WorldMap</code> to no
+longer be a <code class="language-plaintext highlighter-rouge">map</code>.</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="p">(</span>
+    <span class="s">"log"</span>
+
+    <span class="s">"math/rand"</span>
+<span class="p">)</span>
+
+<span class="c">// AggregatePoints uses pickPoint to choose a starting point, moves it randomly</span>
+<span class="c">// until it aggregates, then registers it with addPoint.  It goes forever (or at</span>
+<span class="c">// least until it can no longer pick a point not on the map)</span>
+<span class="k">func</span> <span class="n">AggregatePoints</span><span class="p">(</span>
+    <span class="n">worldMap</span> <span class="o">*</span><span class="n">WorldMap</span><span class="p">,</span>
+    <span class="n">pickPoint</span> <span class="k">func</span><span class="p">()</span> <span class="n">Point</span><span class="p">,</span>
+    <span class="n">addPoint</span> <span class="k">func</span><span class="p">(</span><span class="n">Point</span><span class="p">),</span>
+<span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">{</span>
+        <span class="n">p</span> <span class="o">:=</span> <span class="n">pickPoint</span><span class="p">()</span>
+        <span class="n">i</span> <span class="o">:=</span> <span class="m">0</span>
+        <span class="k">for</span> <span class="n">worldMap</span><span class="o">.</span><span class="n">Contains</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">i</span><span class="o">++</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="m">100</span> <span class="p">{</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">Printf</span><span class="p">(</span><span class="s">"Stopping"</span><span class="p">)</span>
+                <span class="k">return</span>
+            <span class="p">}</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">pickPoint</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="o">!</span><span class="n">worldMap</span><span class="o">.</span><span class="n">Neighbours</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Move</span><span class="p">(</span><span class="n">rand</span><span class="o">.</span><span class="n">Intn</span><span class="p">(</span><span class="m">4</span><span class="p">))</span><span class="o">.</span><span class="n">Clamp</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="n">worldMap</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">addPoint</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+</code></pre></div></div>
+
+<p>So now we can make this a Go program with a <code class="language-plaintext highlighter-rouge">main()</code> function putting it all
+together and giving us a few initialisation options.  That will go in main.go.</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">package</span> <span class="n">main</span>
+
+<span class="k">import</span> <span class="p">(</span>
+    <span class="s">"flag"</span>
+    <span class="s">"log"</span>
+    <span class="s">"math"</span>
+    <span class="s">"math/rand"</span>
+    <span class="s">"os"</span>
+    <span class="s">"runtime/pprof"</span>
+
+    <span class="s">"github.com/hajimehoshi/ebiten/v2"</span>
+<span class="p">)</span>
+
+<span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">var</span> <span class="p">(</span>
+        <span class="n">cpuprofile</span> <span class="kt">string</span>
+        <span class="n">npoints</span>    <span class="kt">int</span>
+        <span class="n">methodName</span> <span class="kt">string</span>
+    <span class="p">)</span>
+    <span class="n">flag</span><span class="o">.</span><span class="n">StringVar</span><span class="p">(</span><span class="o">&amp;</span><span class="n">cpuprofile</span><span class="p">,</span> <span class="s">"cpuprofile"</span><span class="p">,</span> <span class="s">""</span><span class="p">,</span> <span class="s">"write cpu profile to file"</span><span class="p">)</span>
+    <span class="n">flag</span><span class="o">.</span><span class="n">IntVar</span><span class="p">(</span><span class="o">&amp;</span><span class="n">npoints</span><span class="p">,</span> <span class="s">"npoints"</span><span class="p">,</span> <span class="m">300000</span><span class="p">,</span> <span class="s">"number of points to draw"</span><span class="p">)</span>
+    <span class="n">flag</span><span class="o">.</span><span class="n">StringVar</span><span class="p">(</span><span class="o">&amp;</span><span class="n">methodName</span><span class="p">,</span> <span class="s">"method"</span><span class="p">,</span> <span class="s">"circle"</span><span class="p">,</span> <span class="s">"method"</span><span class="p">)</span>
+    <span class="n">flag</span><span class="o">.</span><span class="n">Parse</span><span class="p">()</span>
+
+    <span class="n">method</span> <span class="o">:=</span> <span class="n">mustFindMethod</span><span class="p">(</span><span class="n">methodName</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">cpuprofile</span> <span class="o">!=</span> <span class="s">""</span> <span class="p">{</span>
+        <span class="n">f</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">Create</span><span class="p">(</span><span class="n">cpuprofile</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">Fatal</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="n">pprof</span><span class="o">.</span><span class="n">StartCPUProfile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">defer</span> <span class="n">pprof</span><span class="o">.</span><span class="n">StopCPUProfile</span><span class="p">()</span>
+    <span class="p">}</span>
+
+    <span class="n">worldMap</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="n">WorldMap</span><span class="p">{}</span>
+
+    <span class="n">method</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">worldMap</span><span class="p">)</span>
+
+    <span class="n">game</span> <span class="o">:=</span> <span class="n">NewGame</span><span class="p">(</span><span class="n">worldMap</span><span class="o">.</span><span class="n">All</span><span class="p">(),</span> <span class="n">npoints</span><span class="p">)</span>
+
+    <span class="k">go</span> <span class="n">AggregatePoints</span><span class="p">(</span><span class="n">worldMap</span><span class="p">,</span> <span class="n">method</span><span class="o">.</span><span class="n">pickPoint</span><span class="p">,</span> <span class="n">game</span><span class="o">.</span><span class="n">AddPoint</span><span class="p">)</span>
+
+    <span class="n">ebiten</span><span class="o">.</span><span class="n">SetWindowSize</span><span class="p">(</span><span class="n">worldHeight</span><span class="p">,</span> <span class="n">worldWidth</span><span class="p">)</span>
+    <span class="n">ebiten</span><span class="o">.</span><span class="n">SetWindowTitle</span><span class="p">(</span><span class="s">"Diffraction-limited aggregation"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">ebiten</span><span class="o">.</span><span class="n">RunGame</span><span class="p">(</span><span class="n">game</span><span class="p">);</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">Fatal</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">mustFindMethod</span><span class="p">(</span><span class="n">name</span> <span class="kt">string</span><span class="p">)</span> <span class="n">methodSpec</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">method</span> <span class="o">:=</span> <span class="k">range</span> <span class="n">methods</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="n">method</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="n">method</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="nb">panic</span><span class="p">(</span><span class="s">"invalid method"</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="c">// A few ways</span>
+<span class="k">type</span> <span class="n">methodSpec</span> <span class="k">struct</span> <span class="p">{</span>
+    <span class="n">name</span>      <span class="kt">string</span>          <span class="c">// what to call it on the command line</span>
+    <span class="n">init</span>      <span class="k">func</span><span class="p">(</span><span class="o">*</span><span class="n">WorldMap</span><span class="p">)</span> <span class="c">// function to add seeds to the world map</span>
+    <span class="n">pickPoint</span> <span class="k">func</span><span class="p">()</span> <span class="n">Point</span>    <span class="c">// function to pick a random point</span>
+<span class="p">}</span>
+
+<span class="k">var</span> <span class="n">methods</span> <span class="o">=</span> <span class="p">[]</span><span class="n">methodSpec</span><span class="p">{</span>
+    <span class="p">{</span>
+        <span class="n">name</span><span class="o">:</span>      <span class="s">"point"</span><span class="p">,</span>
+        <span class="n">init</span><span class="o">:</span>      <span class="n">DrawHorizontalPoints</span><span class="p">(</span><span class="m">1</span><span class="p">),</span>
+        <span class="n">pickPoint</span><span class="o">:</span> <span class="n">RandomPoint</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+        <span class="n">name</span><span class="o">:</span>      <span class="s">"point2"</span><span class="p">,</span>
+        <span class="n">init</span><span class="o">:</span>      <span class="n">DrawHorizontalPoints</span><span class="p">(</span><span class="m">2</span><span class="p">),</span>
+        <span class="n">pickPoint</span><span class="o">:</span> <span class="n">RandomPoint</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+        <span class="n">name</span><span class="o">:</span>      <span class="s">"circle"</span><span class="p">,</span>
+        <span class="n">init</span><span class="o">:</span>      <span class="n">DrawCircle</span><span class="p">,</span>
+        <span class="n">pickPoint</span><span class="o">:</span> <span class="n">RandomPointInCircle</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+        <span class="n">name</span><span class="o">:</span>      <span class="s">"hline"</span><span class="p">,</span>
+        <span class="n">init</span><span class="o">:</span>      <span class="n">DrawHorizontalLine</span><span class="p">,</span>
+        <span class="n">pickPoint</span><span class="o">:</span> <span class="n">RandomPoint</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">RandomPointInCircle</span><span class="p">()</span> <span class="n">Point</span> <span class="p">{</span>
+    <span class="n">a</span> <span class="o">:=</span> <span class="n">rand</span><span class="o">.</span><span class="n">Float64</span><span class="p">()</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">Pi</span> <span class="o">*</span> <span class="m">2</span>
+    <span class="n">r</span> <span class="o">:=</span> <span class="n">math</span><span class="o">.</span><span class="n">Sqrt</span><span class="p">(</span><span class="n">rand</span><span class="o">.</span><span class="n">Float64</span><span class="p">())</span> <span class="o">*</span> <span class="n">worldWidth</span> <span class="o">/</span> <span class="m">2</span>
+    <span class="k">return</span> <span class="n">Point</span><span class="p">{</span>
+        <span class="n">X</span><span class="o">:</span> <span class="n">worldWidth</span><span class="o">/</span><span class="m">2</span> <span class="o">+</span> <span class="kt">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">Cos</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="o">*</span><span class="n">r</span><span class="p">),</span>
+        <span class="n">Y</span><span class="o">:</span> <span class="n">worldHeight</span><span class="o">/</span><span class="m">2</span> <span class="o">+</span> <span class="kt">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">Sin</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="o">*</span><span class="n">r</span><span class="p">),</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">RandomPoint</span><span class="p">()</span> <span class="n">Point</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">Point</span><span class="p">{</span>
+        <span class="n">X</span><span class="o">:</span> <span class="n">rand</span><span class="o">.</span><span class="n">Intn</span><span class="p">(</span><span class="n">worldWidth</span><span class="p">),</span>
+        <span class="n">Y</span><span class="o">:</span> <span class="n">rand</span><span class="o">.</span><span class="n">Intn</span><span class="p">(</span><span class="n">worldHeight</span><span class="p">),</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">DrawHorizontalLine</span><span class="p">(</span><span class="n">m</span> <span class="o">*</span><span class="n">WorldMap</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="o">:=</span> <span class="m">0</span><span class="p">;</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">worldWidth</span><span class="p">;</span> <span class="n">x</span><span class="o">++</span> <span class="p">{</span>
+        <span class="n">m</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">Point</span><span class="p">{</span><span class="n">X</span><span class="o">:</span> <span class="n">x</span><span class="p">,</span> <span class="n">Y</span><span class="o">:</span> <span class="n">worldHeight</span> <span class="o">/</span> <span class="m">2</span><span class="p">})</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">DrawHorizontalPoints</span><span class="p">(</span><span class="n">nPoints</span> <span class="kt">int</span><span class="p">)</span> <span class="k">func</span><span class="p">(</span><span class="o">*</span><span class="n">WorldMap</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">func</span><span class="p">(</span><span class="n">m</span> <span class="o">*</span><span class="n">WorldMap</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="o">:=</span> <span class="m">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">nPoints</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">{</span>
+            <span class="n">m</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">Point</span><span class="p">{</span><span class="n">X</span><span class="o">:</span> <span class="n">i</span> <span class="o">*</span> <span class="n">worldWidth</span> <span class="o">/</span> <span class="p">(</span><span class="n">nPoints</span> <span class="o">+</span> <span class="m">1</span><span class="p">),</span> <span class="n">Y</span><span class="o">:</span> <span class="n">worldHeight</span> <span class="o">/</span> <span class="m">2</span><span class="p">})</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">DrawCircle</span><span class="p">(</span><span class="n">m</span> <span class="o">*</span><span class="n">WorldMap</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">const</span> <span class="n">N</span> <span class="o">=</span> <span class="m">2000</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="o">:=</span> <span class="m">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">{</span>
+        <span class="n">a</span> <span class="o">:=</span> <span class="n">math</span><span class="o">.</span><span class="n">Pi</span> <span class="o">*</span> <span class="m">2</span> <span class="o">*</span> <span class="kt">float64</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">/</span> <span class="n">N</span>
+        <span class="n">m</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">Point</span><span class="p">{</span>
+            <span class="n">X</span><span class="o">:</span> <span class="kt">int</span><span class="p">(</span><span class="n">worldWidth</span> <span class="o">/</span> <span class="m">2</span> <span class="o">*</span> <span class="p">(</span><span class="m">1</span> <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">Cos</span><span class="p">(</span><span class="n">a</span><span class="p">))),</span>
+            <span class="n">Y</span><span class="o">:</span> <span class="kt">int</span><span class="p">(</span><span class="n">worldHeight</span> <span class="o">/</span> <span class="m">2</span> <span class="o">*</span> <span class="p">(</span><span class="m">1</span> <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">Sin</span><span class="p">(</span><span class="n">a</span><span class="p">))),</span>
+        <span class="p">}</span><span class="o">.</span><span class="n">Clamp</span><span class="p">())</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Let’s try it!</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ go run <span class="nb">.</span> <span class="nt">-cpuprofile</span> v1.pprof
+2024/10/14 17:26:59 Points: 1000 - 11.427302834s
+2024/10/14 17:27:10 Points: 2000 - 22.592300917s
+2024/10/14 17:27:20 Points: 3000 - 33.275559625s
+2024/10/14 17:27:31 Points: 4000 - 43.320070125s
+<span class="o">[</span>...]
+2024/10/14 17:35:04 Points: 297000 - 8m16.458362959s
+2024/10/14 17:35:04 Points: 298000 - 8m16.475744584s
+2024/10/14 17:35:04 Points: 299000 - 8m16.475820375s
+2024/10/14 17:35:04 Points: 300000 - 8m16.475883084s
+</code></pre></div></div>
+
+<p>It took more than 8 minutes to draw 300000 points, but we get a nice picture in
+the end.</p>
+
+<p><a href="/marooned//assets/dla-v1-result.png"><img src="/marooned//assets/dla-v1-result.png" alt="DLA v1 result" style="display:block; margin-left:auto; margin-right:auto; width: 80%" /></a></p>
+
+<p>Let’s see what took so long (I have slightly edited the result to focus on the relevant information).</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code> ❯ go tool pprof <span class="nt">-http</span> :8000 v1.pprof
+Serving web UI on http://localhost:8000
+</code></pre></div></div>
+
+<p><a href="/marooned//assets/dla-v1-pprof.png"><img src="/marooned//assets/dla-v1-pprof.png" alt="v1 profiling" style="display:block; margin-left:auto; margin-right:auto; width: 80%" /></a></p>
+
+<p>Obviously, using a map to implement <code class="language-plaintext highlighter-rouge">WorldMap</code> wasn’t very judicious.  By the
+way, another way to get this information in text form would have been as
+follows.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ go tool pprof v1.pprof
+File: go-dla
+Type: cpu
+Time: Oct 14, 2024 at 7:43pm <span class="o">(</span>BST<span class="o">)</span>
+Duration: 483.16s, Total samples <span class="o">=</span> 419.59s <span class="o">(</span>86.84%<span class="o">)</span>
+Entering interactive mode <span class="o">(</span><span class="nb">type</span> <span class="s2">"help"</span> <span class="k">for </span>commands, <span class="s2">"o"</span> <span class="k">for </span>options<span class="o">)</span>
+<span class="o">(</span>pprof<span class="o">)</span> top 5
+Showing nodes accounting <span class="k">for </span>322.67s, 76.90% of 419.59s total
+Dropped 240 nodes <span class="o">(</span>cum &lt;<span class="o">=</span> 2.10s<span class="o">)</span>
+Showing top 5 nodes out of 55
+      flat  flat%   <span class="nb">sum</span>%        cum   cum%
+   226.19s 53.91% 53.91%    280.24s 66.79%  runtime.mapaccess2
+    31.24s  7.45% 61.35%     31.24s  7.45%  runtime.pthread_cond_signal
+    24.45s  5.83% 67.18%     24.53s  5.85%  main.Point.Move
+    22.75s  5.42% 72.60%     22.75s  5.42%  runtime.tophash <span class="o">(</span>inline<span class="o">)</span>
+    18.04s  4.30% 76.90%     18.04s  4.30%  runtime.pthread_cond_wait
+<span class="o">(</span>pprof<span class="o">)</span> 
+</code></pre></div></div>
+
+<h2 id="v2">Version 2 - Array-backed WorldMap</h2>
+
+<p>The obvious change to try here is to use a slice or an array as the backing data
+structure for <code class="language-plaintext highlighter-rouge">WorldMap</code>.  Since the dimensions of the world are known at
+compile time, let’s use an array.  So worldmap.go becomes this:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">package</span> <span class="n">main</span>
+
+<span class="k">import</span> <span class="s">"iter"</span>
+
+<span class="k">type</span> <span class="n">WorldMap</span> <span class="p">[</span><span class="n">worldWidth</span> <span class="o">*</span> <span class="n">worldHeight</span><span class="p">]</span><span class="kt">bool</span>
+
+<span class="c">// Add p to the map.</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">m</span> <span class="o">*</span><span class="n">WorldMap</span><span class="p">)</span> <span class="n">Add</span><span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">&lt;</span> <span class="m">0</span> <span class="o">||</span> <span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">&gt;=</span> <span class="n">worldWidth</span> <span class="o">||</span> <span class="n">p</span><span class="o">.</span><span class="n">Y</span> <span class="o">&lt;</span> <span class="m">0</span> <span class="o">||</span> <span class="n">p</span><span class="o">.</span><span class="n">Y</span> <span class="o">&gt;=</span> <span class="n">worldHeight</span> <span class="p">{</span>
+        <span class="k">return</span>
+    <span class="p">}</span>
+    <span class="n">m</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">X</span><span class="o">*</span><span class="n">worldHeight</span><span class="o">+</span><span class="n">p</span><span class="o">.</span><span class="n">Y</span><span class="p">]</span> <span class="o">=</span> <span class="no">true</span>
+<span class="p">}</span>
+
+<span class="c">// Contains returns true if p was added to the map.</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">m</span> <span class="o">*</span><span class="n">WorldMap</span><span class="p">)</span> <span class="n">Contains</span><span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">)</span> <span class="kt">bool</span> <span class="p">{</span>
+	<span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">&lt;</span> <span class="m">0</span> <span class="o">||</span> <span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">&gt;=</span> <span class="n">worldWidth</span> <span class="o">||</span> <span class="n">p</span><span class="o">.</span><span class="n">Y</span> <span class="o">&lt;</span> <span class="m">0</span> <span class="o">||</span> <span class="n">p</span><span class="o">.</span><span class="n">Y</span> <span class="o">&gt;=</span> <span class="n">worldHeight</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="no">false</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="n">m</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">X</span><span class="o">*</span><span class="n">worldHeight</span><span class="o">+</span><span class="n">p</span><span class="o">.</span><span class="n">Y</span><span class="p">]</span>
+<span class="p">}</span>
+
+<span class="c">// Neighbours returns true if the map contains a point one step away from p.</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">m</span> <span class="o">*</span><span class="n">WorldMap</span><span class="p">)</span> <span class="n">Neighbours</span><span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">)</span> <span class="kt">bool</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">m</span><span class="o">.</span><span class="n">Contains</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">Translate</span><span class="p">(</span><span class="m">1</span><span class="p">,</span> <span class="m">0</span><span class="p">))</span> <span class="o">||</span>
+        <span class="n">m</span><span class="o">.</span><span class="n">Contains</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">Translate</span><span class="p">(</span><span class="o">-</span><span class="m">1</span><span class="p">,</span> <span class="m">0</span><span class="p">))</span> <span class="o">||</span>
+        <span class="n">m</span><span class="o">.</span><span class="n">Contains</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">Translate</span><span class="p">(</span><span class="m">0</span><span class="p">,</span> <span class="m">1</span><span class="p">))</span> <span class="o">||</span>
+        <span class="n">m</span><span class="o">.</span><span class="n">Contains</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">Translate</span><span class="p">(</span><span class="m">0</span><span class="p">,</span> <span class="o">-</span><span class="m">1</span><span class="p">))</span>
+<span class="p">}</span>
+
+<span class="c">// All iterates over all the points contained in the map.</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">m</span> <span class="o">*</span><span class="n">WorldMap</span><span class="p">)</span> <span class="n">All</span><span class="p">()</span> <span class="n">iter</span><span class="o">.</span><span class="n">Seq</span><span class="p">[</span><span class="n">Point</span><span class="p">]</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">func</span><span class="p">(</span><span class="n">yield</span> <span class="k">func</span><span class="p">(</span><span class="n">Point</span><span class="p">)</span> <span class="kt">bool</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">added</span> <span class="o">:=</span> <span class="k">range</span> <span class="n">m</span> <span class="p">{</span>
+            <span class="k">if</span> <span class="n">added</span> <span class="p">{</span>
+                <span class="n">p</span> <span class="o">:=</span> <span class="n">Point</span><span class="p">{</span><span class="n">X</span><span class="o">:</span> <span class="n">i</span> <span class="o">/</span> <span class="n">worldHeight</span><span class="p">,</span> <span class="n">Y</span><span class="o">:</span> <span class="n">i</span> <span class="o">%</span> <span class="n">worldHeight</span><span class="p">}</span>
+                <span class="k">if</span> <span class="o">!</span><span class="n">yield</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="p">{</span>
+                    <span class="k">return</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Let’s try it.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ go run <span class="nb">.</span> <span class="nt">-cpuprofile</span> v2.pprof
+2024/10/14 20:14:11 Points: 1000 - 2.131455708s
+2024/10/14 20:14:13 Points: 2000 - 4.114867083s
+2024/10/14 20:14:15 Points: 3000 - 6.18145s
+2024/10/14 20:14:17 Points: 4000 - 8.198248458s
+<span class="o">[</span>...]
+2024/10/14 20:15:45 Points: 297000 - 1m35.633048875s
+2024/10/14 20:15:45 Points: 298000 - 1m35.633134708s
+2024/10/14 20:15:45 Points: 299000 - 1m35.633231291s
+2024/10/14 20:15:45 Points: 300000 - 1m35.650491083s
+</code></pre></div></div>
+
+<p>The result is just as pretty than version 1, we get it 5 times faster!  Wow that
+was easy, but let’s see what the next bottleneck is (again I have removed
+irrelevant nodes from the result).</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ go tool pprof <span class="nt">-http</span> :8000 v2.pprof
+</code></pre></div></div>
+
+<p><a href="/marooned//assets/dla-v2-pprof.png"><img src="/marooned//assets/dla-v2-pprof.png" alt="v1 profiling" style="display:block; margin-left:auto; margin-right:auto; width: 80%" /></a></p>
+
+<p>As for version 1, it’s even more obvious using the CLI.  Note we can also bring
+up a listing of the offending function with some stats about each line.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ go tool pprof v2.pprof
+File: go-dla
+Type: cpu
+Time: Oct 14, 2024 at 8:22pm <span class="o">(</span>BST<span class="o">)</span>
+Duration: 95.70s, Total samples <span class="o">=</span> 85.26s <span class="o">(</span>89.09%<span class="o">)</span>
+Entering interactive mode <span class="o">(</span><span class="nb">type</span> <span class="s2">"help"</span> <span class="k">for </span>commands, <span class="s2">"o"</span> <span class="k">for </span>options<span class="o">)</span>
+<span class="o">(</span>pprof<span class="o">)</span> top 5
+Showing nodes accounting <span class="k">for </span>48.77s, 57.20% of 85.26s total
+Dropped 137 nodes <span class="o">(</span>cum &lt;<span class="o">=</span> 0.43s<span class="o">)</span>
+Showing top 5 nodes out of 53
+      flat  flat%   <span class="nb">sum</span>%        cum   cum%
+    21.75s 25.51% 25.51%     21.82s 25.59%  main.Point.Move <span class="o">(</span>inline<span class="o">)</span>
+     8.41s  9.86% 35.37%      8.41s  9.86%  main.<span class="o">(</span><span class="k">*</span>WorldMap<span class="o">)</span>.Contains <span class="o">(</span>inline<span class="o">)</span>
+     8.17s  9.58% 44.96%      8.17s  9.58%  internal/chacha8rand.block
+     5.54s  6.50% 51.45%      5.54s  6.50%  runtime.pthread_cond_signal
+     4.90s  5.75% 57.20%     65.77s 77.14%  main.AggregatePoints
+<span class="o">(</span>pprof<span class="o">)</span> list main.Point.Move
+Total: 85.26s
+ROUTINE <span class="o">========================</span> main.Point.Move <span class="k">in</span> /Users/arno/Personal/Projects/go-dla/point.go
+    21.75s     21.82s <span class="o">(</span>flat, cum<span class="o">)</span> 25.59% of Total
+         <span class="nb">.</span>          <span class="nb">.</span>      8:func <span class="o">(</span>p Point<span class="o">)</span> Move<span class="o">(</span><span class="nb">dir </span>int<span class="o">)</span> Point <span class="o">{</span>
+         <span class="nb">.</span>          <span class="nb">.</span>      9:   switch <span class="nb">dir</span> <span class="o">{</span>
+     5.06s      5.06s     10:   <span class="k">case</span> 0:
+     4.88s      4.92s     11:           p.X++
+     1.15s      1.15s     12:   <span class="k">case</span> 1:
+     5.03s      5.04s     13:           p.X--
+     790ms      790ms     14:   <span class="k">case</span> 2:
+     2.40s      2.41s     15:           p.Y++
+         <span class="nb">.</span>          <span class="nb">.</span>     16:   default:
+     2.44s      2.45s     17:           p.Y--
+         <span class="nb">.</span>          <span class="nb">.</span>     18:   <span class="o">}</span>
+         <span class="nb">.</span>          <span class="nb">.</span>     19:   <span class="k">return </span>p
+         <span class="nb">.</span>          <span class="nb">.</span>     20:<span class="o">}</span>
+         <span class="nb">.</span>          <span class="nb">.</span>     21:
+         <span class="nb">.</span>          <span class="nb">.</span>     22:// Clamp to the point to within the confines of the world
+</code></pre></div></div>
+
+<p>The function is obviously in the hot path, as the main job of the program is to
+move a point around until it can be aggregated.  It’s already inlined as <code class="language-plaintext highlighter-rouge">pprof</code>
+tells us.  It takes a lot more time than other functions on the hot path (such
+as <code class="language-plaintext highlighter-rouge">WorldMap.Contains()</code> or <code class="language-plaintext highlighter-rouge">WorldMap.Neighbours()</code>) and it is very simple.
+However it has a fair amount of branching (one for each case), and I hear that
+modern CPUs don’t like branching because it messes with their instruction
+pipeline so there may be scope for improvement here.  But before we do that,
+there is an obvious thing that modern processors can do well and we haven’t
+tried yet: parallelism.  I think we should parallelise first, because</p>
+<ul>
+  <li>it’s likely to bring a very significant speedup; and</li>
+  <li>it might turn out that the biggest bottleneck after parallelising is something
+altogether completely different.</li>
+</ul>
+
+<h2 id="v3">Version 3 - Parallel workers</h2>
+
+<p>This is going to be an easy adjustment.  Essentially, instead of spawning one
+worker goroutine at the start, we will spawn N, N being the number of “cores” in
+the processor (to find that out we will use <code class="language-plaintext highlighter-rouge">runtime.GOMAXPROCS()</code>).</p>
+
+<p>Changes to <code class="language-plaintext highlighter-rouge">AggregatePoints()</code> in worker.go are limited to adding a new function
+parameter <code class="language-plaintext highlighter-rouge">workerNumber int</code> just so that we can specify which worker is logging
+a message.</p>
+
+<p>Changes to <code class="language-plaintext highlighter-rouge">main()</code> in main.go are just to</p>
+<ul>
+  <li>have a new CLI argument so the number of workers can be adjusted and</li>
+  <li>spawn N worker goroutines rather than just one.</li>
+</ul>
+
+<p>This is probably best expressed as a diff:</p>
+
+<div class="language-diff highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="gh">diff --git a/main.go b/main.go
+index b3a8b02..63f2bb1 100644
+</span><span class="gd">--- a/main.go
+</span><span class="gi">+++ b/main.go
+</span><span class="p">@@ -6,6 +6,7 @@</span> import (
+ 	"math"
+ 	"math/rand"
+ 	"os"
+<span class="gi">+	"runtime"
+</span> 	"runtime/pprof"
+ 
+ 	"github.com/hajimehoshi/ebiten/v2"
+<span class="p">@@ -13,16 +14,25 @@</span> import (
+ 
+ func main() {
+ 	var (
+<span class="gd">-		cpuprofile string
+-		npoints    int
+-		methodName string
+</span><span class="gi">+		cpuprofile  string
++		npoints     int
++		methodName  string
++		workerCount int
+</span> 	)
+ 	flag.StringVar(&amp;cpuprofile, "cpuprofile", "", "write cpu profile to file")
+ 	flag.IntVar(&amp;npoints, "npoints", 300000, "number of points to draw")
+ 	flag.StringVar(&amp;methodName, "method", "circle", "method")
+<span class="gi">+	flag.IntVar(&amp;workerCount, "workers", 0, "number of workers (if &lt; 0, add GOMAXPROCS)")
+</span> 	flag.Parse()
+ 
+ 	method := mustFindMethod(methodName)
+<span class="gi">+	if workerCount &lt;= 0 {
++		workerCount += runtime.GOMAXPROCS(0)
++	}
++	if workerCount &lt;= 0 {
++		workerCount = 1
++	}
++	log.Printf("Worker count: %d", workerCount)
+</span> 
+ 	if cpuprofile != "" {
+ 		f, err := os.Create(cpuprofile)
+<span class="p">@@ -39,7 +49,9 @@</span> func main() {
+ 
+ 	game := NewGame(worldMap.All(), npoints)
+ 
+<span class="gd">-	go AggregatePoints(worldMap, method.pickPoint, game.AddPoint)
+</span><span class="gi">+	for i := 1; i &lt;= workerCount; i++ {
++		go AggregatePoints(i, worldMap, method.pickPoint, game.AddPoint)
++	}
+</span> 
+ 	ebiten.SetWindowSize(worldHeight, worldWidth)
+ 	ebiten.SetWindowTitle("Diffraction-limited aggregation")
+<span class="gh">diff --git a/worker.go b/worker.go
+index 43abfc6..6a8068a 100644
+</span><span class="gd">--- a/worker.go
+</span><span class="gi">+++ b/worker.go
+</span><span class="p">@@ -10,6 +10,7 @@</span> import (
+ // until it aggregates, then registers it with addPoint.  It goes forever (or at
+ // least until it can no longer pick a point not on the map)
+ func AggregatePoints(
+<span class="gi">+	workerNumber int,
+</span> 	worldMap *WorldMap,
+ 	pickPoint func() Point,
+ 	addPoint func(Point),
+<span class="p">@@ -20,7 +21,7 @@</span> func AggregatePoints(
+ 		for worldMap.Contains(p) {
+ 			i++
+ 			if i == 100 {
+<span class="gd">-				log.Printf("Stopping")
+</span><span class="gi">+				log.Printf("Worker %d stopping", workerNumber)
+</span> 				return
+ 			}
+ 			p = pickPoint()
+</code></pre></div></div>
+
+<p>Let’s try it!</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ go run <span class="nb">.</span> <span class="nt">-cpuprofile</span> v3.pprof
+2024/10/14 21:44:55 Worker count: 10
+2024/10/14 21:44:56 Points: 1000 - 326.773875ms
+2024/10/14 21:44:56 Points: 2000 - 608.128792ms
+2024/10/14 21:44:56 Points: 3000 - 873.241917ms
+2024/10/14 21:44:56 Points: 4000 - 1.13847325s
+<span class="o">[</span>...]
+2024/10/14 21:45:08 Points: 173000 - 12.595318125s
+2024/10/14 21:45:08 Points: 174000 - 12.598245208s
+2024/10/14 21:45:08 Ran out of <span class="nb">time </span><span class="k">in </span>Update loop after 6304 points
+2024/10/14 21:45:08 Points: 175000 - 12.6055255s
+<span class="o">[</span>...]
+2024/10/14 21:45:08 Points: 212000 - 12.665401792s
+2024/10/14 21:45:08 Ran out of <span class="nb">time </span><span class="k">in </span>Update loop after 13663 points
+2024/10/14 21:45:08 Points: 213000 - 12.672544875s
+<span class="o">[</span>...]
+2024/10/14 21:45:08 Points: 225000 - 12.681567458s
+2024/10/14 21:45:08 Ran out of <span class="nb">time </span><span class="k">in </span>Update loop after 13300 points
+2024/10/14 21:45:08 Points: 226000 - 12.68903025s
+<span class="o">[</span>...]
+2024/10/14 21:45:08 Points: 240000 - 12.698756958s
+2024/10/14 21:45:08 Ran out of <span class="nb">time </span><span class="k">in </span>Update loop after 14900 points
+2024/10/14 21:45:08 Points: 241000 - 12.70546875s
+<span class="o">[</span>...]
+2024/10/14 21:45:08 Points: 256000 - 12.714714625s
+2024/10/14 21:45:08 Ran out of <span class="nb">time </span><span class="k">in </span>Update loop after 16500 points
+2024/10/14 21:45:08 Points: 257000 - 12.721866s
+<span class="o">[</span>...]
+2024/10/14 21:45:08 Points: 272000 - 12.731554375s
+2024/10/14 21:45:08 Ran out of <span class="nb">time </span><span class="k">in </span>Update loop after 15700 points
+2024/10/14 21:45:08 Points: 273000 - 12.738769667s
+<span class="o">[</span>...]
+2024/10/14 21:45:08 Points: 290000 - 12.748475042s
+2024/10/14 21:45:08 Ran out of <span class="nb">time </span><span class="k">in </span>Update loop after 17700 points
+2024/10/14 21:45:08 Points: 291000 - 12.755820708s
+<span class="o">[</span>...]
+2024/10/14 21:45:08 Points: 297000 - 12.759201583s
+2024/10/14 21:45:08 Points: 298000 - 12.7597945s
+2024/10/14 21:45:08 Points: 299000 - 12.760386167s
+2024/10/14 21:45:08 Points: 300000 - 12.761009083s
+</code></pre></div></div>
+
+<p>So version 3 is faster than version 2 by a factor of 7.5!  That’s pretty good,
+and not very surprising as on my machine I was runnning 10 workers and they were
+probably able to each have their own core to work on.  However, there are two
+things to note straight away.</p>
+<ol>
+  <li>As the logs show, the <code class="language-plaintext highlighter-rouge">Update()</code> function wasn’t able to consume all
+available points a few times (but mainly towards the end).  It’s probably OK
+as the more points are already on the graph, the shorter the path a new
+particle needs to walk before aggregating.  So towards the end the points
+keep coming fast and the event loop needs to stop consuming them from time to
+time to redraw the screen.</li>
+  <li><code class="language-plaintext highlighter-rouge">WorldMap</code> is not thread-safe, and is concurrently accessed by all the
+workers.  I think that’s OK too, because the only changes to values in the
+array are from <code class="language-plaintext highlighter-rouge">false</code> to <code class="language-plaintext highlighter-rouge">true</code>, so the worse that can happen is that a
+worker will add a point on the map when there is already one.  That is
+probably very unlikely anyway, as there are 10 workers (so there are only 10
+particles in motion at one time) and the world has 1000*1000 locations where
+points can be added.</li>
+</ol>
+
+<p>Let’s also check the CPU profile to see if <code class="language-plaintext highlighter-rouge">Point.Move()</code> is still the main
+bottleneck as in version 2.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ go tool pprof v3.pprof
+File: go-dla-v2
+Type: cpu
+Time: Oct 14, 2024 at 9:44pm <span class="o">(</span>BST<span class="o">)</span>
+Duration: 12.87s, Total samples <span class="o">=</span> 92.22s <span class="o">(</span>716.55%<span class="o">)</span>
+Entering interactive mode <span class="o">(</span><span class="nb">type</span> <span class="s2">"help"</span> <span class="k">for </span>commands, <span class="s2">"o"</span> <span class="k">for </span>options<span class="o">)</span>
+<span class="o">(</span>pprof<span class="o">)</span> top 5
+Showing nodes accounting <span class="k">for </span>55.89s, 60.61% of 92.22s total
+Dropped 168 nodes <span class="o">(</span>cum &lt;<span class="o">=</span> 0.46s<span class="o">)</span>
+Showing top 5 nodes out of 52
+      flat  flat%   <span class="nb">sum</span>%        cum   cum%
+    26.08s 28.28% 28.28%     26.19s 28.40%  main.Point.Move <span class="o">(</span>inline<span class="o">)</span>
+     9.80s 10.63% 38.91%      9.82s 10.65%  main.<span class="o">(</span><span class="k">*</span>WorldMap<span class="o">)</span>.Contains <span class="o">(</span>inline<span class="o">)</span>
+     9.31s 10.10% 49.00%      9.31s 10.10%  internal/chacha8rand.block
+     5.53s  6.00% 55.00%     78.32s 84.93%  main.AggregatePoints
+     5.17s  5.61% 60.61%      5.20s  5.64%  main.Point.Clamp <span class="o">(</span>inline<span class="o">)</span>
+<span class="o">(</span>pprof<span class="o">)</span> 
+</code></pre></div></div>
+
+<p>In fact the results are very similar to version 2, where all the calculations
+happened in a single core.  That makes sense as the timings for each goroutine
+are added.  So in version 3, 10 goroutines spent a total time of 26,08s in
+<code class="language-plaintext highlighter-rouge">Point.Move()</code>, and in version 3, one goroutine spent 21.75s in the same
+function.  I am not sure what explains the difference (perhaps the fact that
+other tasks on my computer also need CPU time!).</p>
+
+<p>So now that we have made sure that we use all the cores on the machine, let’s
+see if we can optimise this bottleneck.</p>
+
+<h2 id="v4">Version 4 - Branchless Point.Move()</h2>
+
+<p>So we have this method</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">// Move the point by one step (dir is expected to be 0, 1, 2 or 3).</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">)</span> <span class="n">Move</span><span class="p">(</span><span class="n">dir</span> <span class="kt">int</span><span class="p">)</span> <span class="n">Point</span> <span class="p">{</span>
+    <span class="k">switch</span> <span class="n">dir</span> <span class="p">{</span>
+    <span class="k">case</span> <span class="m">0</span><span class="o">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">X</span><span class="o">++</span>
+    <span class="k">case</span> <span class="m">1</span><span class="o">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">X</span><span class="o">--</span>
+    <span class="k">case</span> <span class="m">2</span><span class="o">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">Y</span><span class="o">++</span>
+    <span class="k">default</span><span class="o">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">Y</span><span class="o">--</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">p</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Given how <code class="language-plaintext highlighter-rouge">switch</code> is implemented in Go, this means there are probably going to
+be 3 conditional branches.  Let’s try to check that!  There are several ways we
+could do it, but since I’m trying to get better at using <code class="language-plaintext highlighter-rouge">pprof</code> I’m going to
+use one of its features.  First of all, as we saw before, <code class="language-plaintext highlighter-rouge">Point.Move()</code> is
+currently inlined in the binary, which makes it a bit harder to locate.  So I’m
+going to tell the go compiler not to inline it:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">//go:noline</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">)</span> <span class="n">Move</span><span class="p">(</span><span class="n">dir</span> <span class="kt">int</span><span class="p">)</span> <span class="n">Point</span> <span class="p">{</span>
+    <span class="k">switch</span> <span class="n">dir</span> <span class="p">{</span>
+    <span class="o">...</span>
+</code></pre></div></div>
+
+<p>Then I can make a build of it, run it and examine the CPU profile with <code class="language-plaintext highlighter-rouge">pprof</code>.
+Note that I need to do an explicit build step instead of using <code class="language-plaintext highlighter-rouge">go run .</code>.  I
+think the reason is that with <code class="language-plaintext highlighter-rouge">go run .</code> the binary gets deleted straight after
+the run, so <code class="language-plaintext highlighter-rouge">pprof</code> is unable to find the symbol table</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ go build <span class="nt">-o</span> go-dla-v3-noinline
+❯ ./go-dla-v3-noinline <span class="nt">-cpuprofile</span> v3-noinline.pprof 2&gt;&amp; /dev/null
+❯ go tool pprof v3-noinline.pprof
+File: go-dla-v3-noinline
+Type: cpu
+Time: Oct 14, 2024 at 10:44pm <span class="o">(</span>BST<span class="o">)</span>
+Duration: 12.94s, Total samples <span class="o">=</span> 93.10s <span class="o">(</span>719.36%<span class="o">)</span>
+Entering interactive mode <span class="o">(</span><span class="nb">type</span> <span class="s2">"help"</span> <span class="k">for </span>commands, <span class="s2">"o"</span> <span class="k">for </span>options<span class="o">)</span>
+<span class="o">(</span>pprof<span class="o">)</span> disasm Point.Move
+Total: 93.10s
+ROUTINE <span class="o">========================</span> main.Point.Move
+    29.53s     29.70s <span class="o">(</span>flat, cum<span class="o">)</span> 31.90% of Total
+     1.55s      1.55s  100268110: CBNZ R2, 3<span class="o">(</span>PC<span class="o">)</span>                          <span class="p">;</span>main.Point.Move point.go:12
+     7.44s      7.47s  100268114: ADD <span class="nv">$1</span>, R0, R0                          <span class="p">;</span>main.Point.Move point.go:13
+         <span class="nb">.</span>          <span class="nb">.</span>  100268118: JMP 10<span class="o">(</span>PC<span class="o">)</span>                              <span class="p">;</span>point.go:13
+     860ms      870ms  10026811c: CMP <span class="nv">$1</span>, R2                              <span class="p">;</span>main.Point.Move point.go:14
+         <span class="nb">.</span>          <span class="nb">.</span>  100268120: BNE 3<span class="o">(</span>PC<span class="o">)</span>                               <span class="p">;</span>point.go:14
+     7.28s      7.34s  100268124: SUB <span class="nv">$1</span>, R0, R0                          <span class="p">;</span>main.Point.Move point.go:15
+         <span class="nb">.</span>          <span class="nb">.</span>  100268128: JMP 6<span class="o">(</span>PC<span class="o">)</span>                               <span class="p">;</span>point.go:15
+     1.48s      1.49s  10026812c: CMP <span class="nv">$2</span>, R2                              <span class="p">;</span>main.Point.Move point.go:16
+         <span class="nb">.</span>          <span class="nb">.</span>  100268130: BNE 3<span class="o">(</span>PC<span class="o">)</span>                               <span class="p">;</span>point.go:16
+     3.81s      3.83s  100268134: ADD <span class="nv">$1</span>, R1, R1                          <span class="p">;</span>main.Point.Move point.go:17
+         <span class="nb">.</span>          <span class="nb">.</span>  100268138: JMP 2<span class="o">(</span>PC<span class="o">)</span>                               <span class="p">;</span>point.go:17
+     4.02s      4.04s  10026813c: SUB <span class="nv">$1</span>, R1, R1                          <span class="p">;</span>main.Point.Move point.go:19
+     3.09s      3.11s  100268140: RET                                     <span class="p">;</span>main.Point.Move point.go:21
+         <span class="nb">.</span>          <span class="nb">.</span>  100268144: ?                                       <span class="p">;</span>point.go:21
+         <span class="nb">.</span>          <span class="nb">.</span>  100268148: ?
+         <span class="nb">.</span>          <span class="nb">.</span>  10026814c: ?
+<span class="o">(</span>pprof<span class="o">)</span>
+</code></pre></div></div>
+
+<p>As expected,  we can see</p>
+<ul>
+  <li>3 conditional jumps: one instance of <code class="language-plaintext highlighter-rouge">CBNZ</code> (for <code class="language-plaintext highlighter-rouge">case 0</code>) and two of <code class="language-plaintext highlighter-rouge">BNE</code>
+(for <code class="language-plaintext highlighter-rouge">case 1</code> and <code class="language-plaintext highlighter-rouge">case 2</code>)</li>
+  <li>3 plains jumps, to break out of the first 3 switch cases.</li>
+</ul>
+
+<p>So let’s see if <code class="language-plaintext highlighter-rouge">Point.Move(dir int)</code> can be improved.  It takes <code class="language-plaintext highlighter-rouge">dir</code> which between 0 and 3, really 2 bits <code class="language-plaintext highlighter-rouge">a</code> and <code class="language-plaintext highlighter-rouge">b</code>, which we could write as</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="n">a</span> <span class="o">:=</span> <span class="n">dir</span> <span class="o">&amp;</span> <span class="m">1</span>
+    <span class="n">b</span> <span class="o">:=</span> <span class="n">dir</span> <span class="o">&gt;&gt;</span> <span class="m">1</span>
+</code></pre></div></div>
+
+<p>Now let’s compute <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>=</mo><mi>a</mi><mo>−</mo><mi>b</mi></mrow><annotation encoding="application/x-tex">x = a - b</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">x</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.66666em;vertical-align:-0.08333em;"></span><span class="mord mathdefault">a</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.69444em;vertical-align:0em;"></span><span class="mord mathdefault">b</span></span></span></span> and <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mo>=</mo><mi>a</mi><mo>+</mo><mi>b</mi><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">y = a + b - 1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.19444em;"></span><span class="mord mathdefault" style="margin-right:0.03588em;">y</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.66666em;vertical-align:-0.08333em;"></span><span class="mord mathdefault">a</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.77777em;vertical-align:-0.08333em;"></span><span class="mord mathdefault">b</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span> for all the values of <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>a</mi></mrow><annotation encoding="application/x-tex">a</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">a</span></span></span></span> and <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>b</mi></mrow><annotation encoding="application/x-tex">b</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.69444em;vertical-align:0em;"></span><span class="mord mathdefault">b</span></span></span></span></p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>a</mi></mrow><annotation encoding="application/x-tex">a</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">a</span></span></span></span></th>
+      <th style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>b</mi></mrow><annotation encoding="application/x-tex">b</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.69444em;vertical-align:0em;"></span><span class="mord mathdefault">b</span></span></span></span></th>
+      <th style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>=</mo><mi>a</mi><mo>−</mo><mi>b</mi></mrow><annotation encoding="application/x-tex">x = a - b</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">x</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.66666em;vertical-align:-0.08333em;"></span><span class="mord mathdefault">a</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.69444em;vertical-align:0em;"></span><span class="mord mathdefault">b</span></span></span></span></th>
+      <th style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mo>=</mo><mi>a</mi><mo>+</mo><mi>b</mi><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">y = a + b - 1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.19444em;"></span><span class="mord mathdefault" style="margin-right:0.03588em;">y</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.66666em;vertical-align:-0.08333em;"></span><span class="mord mathdefault">a</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.77777em;vertical-align:-0.08333em;"></span><span class="mord mathdefault">b</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span></th>
+      <th style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mi>p</mi><mi mathvariant="normal">.</mi><mi>X</mi><mo>+</mo><mi>x</mi><mo separator="true">,</mo><mi>p</mi><mi mathvariant="normal">.</mi><mi>Y</mi><mo>+</mo><mi>y</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(p.X + x, p.Y + y)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord mathdefault">p</span><span class="mord">.</span><span class="mord mathdefault" style="margin-right:0.07847em;">X</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.8777699999999999em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathdefault">p</span><span class="mord">.</span><span class="mord mathdefault" style="margin-right:0.22222em;">Y</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathdefault" style="margin-right:0.03588em;">y</span><span class="mclose">)</span></span></span></span></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn></mrow><annotation encoding="application/x-tex">0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">0</span></span></span></span></td>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn></mrow><annotation encoding="application/x-tex">0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">0</span></span></span></span></td>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn></mrow><annotation encoding="application/x-tex">0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">0</span></span></span></span></td>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">-1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.72777em;vertical-align:-0.08333em;"></span><span class="mord">−</span><span class="mord">1</span></span></span></span></td>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mi>p</mi><mi mathvariant="normal">.</mi><mi>X</mi><mo separator="true">,</mo><mi>p</mi><mi mathvariant="normal">.</mi><mi>Y</mi><mo>−</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(p.X, p.Y - 1)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord mathdefault">p</span><span class="mord">.</span><span class="mord mathdefault" style="margin-right:0.07847em;">X</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathdefault">p</span><span class="mord">.</span><span class="mord mathdefault" style="margin-right:0.22222em;">Y</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">1</span><span class="mclose">)</span></span></span></span></td>
+    </tr>
+    <tr>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn></mrow><annotation encoding="application/x-tex">1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span></td>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn></mrow><annotation encoding="application/x-tex">0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">0</span></span></span></span></td>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn></mrow><annotation encoding="application/x-tex">1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span></td>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn></mrow><annotation encoding="application/x-tex">0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">0</span></span></span></span></td>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mi>p</mi><mi mathvariant="normal">.</mi><mi>X</mi><mo>+</mo><mn>1</mn><mo separator="true">,</mo><mi>p</mi><mi mathvariant="normal">.</mi><mi>Y</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(p.X + 1, p.Y)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord mathdefault">p</span><span class="mord">.</span><span class="mord mathdefault" style="margin-right:0.07847em;">X</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">1</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathdefault">p</span><span class="mord">.</span><span class="mord mathdefault" style="margin-right:0.22222em;">Y</span><span class="mclose">)</span></span></span></span></td>
+    </tr>
+    <tr>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn></mrow><annotation encoding="application/x-tex">0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">0</span></span></span></span></td>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn></mrow><annotation encoding="application/x-tex">1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span></td>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">-1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.72777em;vertical-align:-0.08333em;"></span><span class="mord">−</span><span class="mord">1</span></span></span></span></td>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn></mrow><annotation encoding="application/x-tex">0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">0</span></span></span></span></td>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mi>p</mi><mi mathvariant="normal">.</mi><mi>X</mi><mo>−</mo><mn>1</mn><mo separator="true">,</mo><mi>p</mi><mi mathvariant="normal">.</mi><mi>Y</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(p.X - 1, p.Y)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord mathdefault">p</span><span class="mord">.</span><span class="mord mathdefault" style="margin-right:0.07847em;">X</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">1</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathdefault">p</span><span class="mord">.</span><span class="mord mathdefault" style="margin-right:0.22222em;">Y</span><span class="mclose">)</span></span></span></span></td>
+    </tr>
+    <tr>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn></mrow><annotation encoding="application/x-tex">1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span></td>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn></mrow><annotation encoding="application/x-tex">1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span></td>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn></mrow><annotation encoding="application/x-tex">0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">0</span></span></span></span></td>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn></mrow><annotation encoding="application/x-tex">1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span></td>
+      <td style="text-align: center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mi>p</mi><mi mathvariant="normal">.</mi><mi>X</mi><mo separator="true">,</mo><mi>p</mi><mi mathvariant="normal">.</mi><mi>Y</mi><mo>+</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(p.X, p.Y + 1)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord mathdefault">p</span><span class="mord">.</span><span class="mord mathdefault" style="margin-right:0.07847em;">X</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathdefault">p</span><span class="mord">.</span><span class="mord mathdefault" style="margin-right:0.22222em;">Y</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">1</span><span class="mclose">)</span></span></span></span></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The last column in the table above shows us that we can move <code class="language-plaintext highlighter-rouge">p</code> by one step in exactly one direction as follows</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">)</span> <span class="n">Move</span><span class="p">(</span><span class="n">dir</span> <span class="kt">int</span><span class="p">)</span> <span class="n">Point</span> <span class="p">{</span>
+	<span class="n">a</span> <span class="o">:=</span> <span class="n">dir</span> <span class="o">&amp;</span> <span class="m">1</span>
+	<span class="n">b</span> <span class="o">:=</span> <span class="n">dir</span> <span class="o">&gt;&gt;</span> <span class="m">1</span>
+	<span class="k">return</span> <span class="n">Point</span><span class="p">{</span>
+		<span class="n">X</span><span class="o">:</span> <span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">+</span> <span class="n">a</span> <span class="o">-</span> <span class="n">b</span><span class="p">,</span>
+		<span class="n">Y</span><span class="o">:</span> <span class="n">p</span><span class="o">.</span><span class="n">Y</span> <span class="o">+</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">-</span> <span class="m">1</span><span class="p">,</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Let’s try it (from now on I will not worry about when <code class="language-plaintext highlighter-rouge">Update</code> runs out of time,
+unless it happens too much).</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ go run <span class="nb">.</span> <span class="nt">-cpuprofile</span> v4.pprof
+2024/10/14 22:25:17 Worker count: 10
+2024/10/14 22:25:17 Points: 1000 - 188.212041ms
+2024/10/14 22:25:17 Points: 2000 - 378.719291ms
+2024/10/14 22:25:17 Points: 3000 - 537.259583ms
+2024/10/14 22:25:18 Points: 4000 - 706.399958ms
+<span class="o">[</span>...]
+2024/10/14 22:25:25 Points: 297000 - 7.684472125s
+2024/10/14 22:25:25 Points: 298000 - 7.685051333s
+2024/10/14 22:25:25 Points: 299000 - 7.685599583s
+2024/10/14 22:25:25 Points: 300000 - 7.686393666s
+</code></pre></div></div>
+
+<p>This worked really well!  Version 4 is 1.9 times faster than version 3.  Out of
+interest, let’s see what the new <code class="language-plaintext highlighter-rouge">Point.Move()</code> method compiles to using pprof
+and what time is spent in it compared with v3.  For this, as for v3, I will make
+a version of <code class="language-plaintext highlighter-rouge">Point.Move()</code> with the <code class="language-plaintext highlighter-rouge">//go:noinline</code> annotation.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ go build <span class="nt">-o</span> go-dla-v4-noinline
+  ~/Personal/Projects/go-dla   v4 <span class="k">*</span>2 <span class="o">!</span>1 ?20 ❯ ./go-dla-v4-noinline <span class="nt">-cpuprofile</span> v4-noinline.pprof 2&gt;&amp; /dev/null
+  ~/Personal/Projects/go-dla   v4 <span class="k">*</span>2 <span class="o">!</span>1 ?21 ❯ go tool pprof v4-noinline.pprof
+File: go-dla-v4-noinline
+Type: cpu
+Time: Oct 14, 2024 at 11:22pm <span class="o">(</span>BST<span class="o">)</span>
+Duration: 8.37s, Total samples <span class="o">=</span> 60.06s <span class="o">(</span>717.77%<span class="o">)</span>
+Entering interactive mode <span class="o">(</span><span class="nb">type</span> <span class="s2">"help"</span> <span class="k">for </span>commands, <span class="s2">"o"</span> <span class="k">for </span>options<span class="o">)</span>
+<span class="o">(</span>pprof<span class="o">)</span> disasm Point.Move
+Total: 60.06s
+ROUTINE <span class="o">========================</span> main.Point.Move
+     1.52s      1.53s <span class="o">(</span>flat, cum<span class="o">)</span>  2.55% of Total
+     1.52s      1.53s  100268130: AND <span class="nv">$1</span>, R2, R3                          <span class="p">;</span>main.Point.Move point.go:11
+         <span class="nb">.</span>          <span class="nb">.</span>  100268134: ADD R0, R3, R4                          <span class="p">;</span>point.go:14
+         <span class="nb">.</span>          <span class="nb">.</span>  100268138: SUB R2-&gt;1, R4, R0
+         <span class="nb">.</span>          <span class="nb">.</span>  10026813c: ADD R1, R3, R3                          <span class="p">;</span>point.go:15
+         <span class="nb">.</span>          <span class="nb">.</span>  100268140: ADD R2-&gt;1, R3, R2
+         <span class="nb">.</span>          <span class="nb">.</span>  100268144: SUB <span class="nv">$1</span>, R2, R1
+         <span class="nb">.</span>          <span class="nb">.</span>  100268148: RET                                     <span class="p">;</span>point.go:13
+         <span class="nb">.</span>          <span class="nb">.</span>  10026814c: ?
+<span class="o">(</span>pprof<span class="o">)</span> 
+</code></pre></div></div>
+
+<p>That is 1.52s spent <em>altogether</em> in <code class="language-plaintext highlighter-rouge">Point.Move</code>, compare with version 3 that
+was 29.53s!  I have heard about the impact of incorrect branch prediction
+before, but it seems to me that I’m seeing a probably very simple but striking
+example of this phenomenon.  In our case, <code class="language-plaintext highlighter-rouge">dir</code> is random so the branch
+predictor must be completely useless.  Removing the branches altogether seems to
+speed up this function by a factor of about 20!</p>
+
+<h2 id="v5">Version 5 - Stop wasting random numbers</h2>
+
+<p>Every time we draw a random number to chose a direction for a random walk, that
+requires only 2 random bits but we generate 64.  That turns out to be the main
+bottleneck at this point.</p>
+
+<p>Coming soon</p>
+
+<h2 id="v6">Version 6 - Precompute neighbours</h2>
+
+<p>We now spend most of the time in <code class="language-plaintext highlighter-rouge">Point.Neighbours()</code>. But what if we could
+precompute it?  In all probability it would be done once and used many times.</p>
+
+<p>Coming soon</p>
+
+<h2 id="v7">Version 7 - Inline function in hot path by splitting it</h2>
+
+<p>There are no easy pickings anymore.  But one function on the hot path is just
+too big to be inlined.  Would be get a significant speedup by splitting it in
+two and thus inlining both halves? (the answer is yes).</p>
+
+<p>Coming soon</p>
+
+<h2 id="v8">Version 8 - Speed up hot path by merging two functions</h2>
+
+<p>It’s getting hard to see what individual functions can be made faster at this
+point.  In the previous version, we split a function in two.  This time, we
+notice that we execute <code class="language-plaintext highlighter-rouge">p.Move(dir).Clamp()</code> on the hot path.  Could we merge
+these two to make the code more efficient?  (the answer is yes).</p>
+
+<p>Coming soon</p>
+
+<h2 id="maths">Some combinatorics about random walks</h2>
+
+<p>At this point I have run out of optimisations, so I consider the mathematics of
+random walks, to see if they have properties that may mean we can have a more
+efficient algorithm for our problem (the answer is yes!).</p>
+
+<p>Coming soonish</p>
+
+<h2 id="v9">Version 9 - the final version, from 8 minutes to 0.8 seconds</h2>
+
+<p>Coming soonish</p>
+
+  </div><a class="u-url" href="/marooned/go/2024/10/14/go-dla.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/marooned/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Marooned on Github</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">Marooned on Github</li><li><a class="u-email" href="mailto:arnodel@gmail.com">arnodel@gmail.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/arnodel"><svg class="svg-icon"><use xlink:href="/marooned/assets/minima-social-icons.svg#github"></use></svg> <span class="username">arnodel</span></a></li><li><a href="https://www.twitter.com/ADelobelle"><svg class="svg-icon"><use xlink:href="/marooned/assets/minima-social-icons.svg#twitter"></use></svg> <span class="username">ADelobelle</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p>A website for Arnaud Delobelle</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
