@@ -1077,8 +1077,8 @@ and what time is spent in it compared with v3.  For this, as for v3, I will make
 a version of <code class="language-plaintext highlighter-rouge">Point.Move()</code> with the <code class="language-plaintext highlighter-rouge">//go:noinline</code> annotation.</p>
 
 <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ go build <span class="nt">-o</span> go-dla-v4-noinline
-  ~/Personal/Projects/go-dla   v4 <span class="k">*</span>2 <span class="o">!</span>1 ?20 ❯ ./go-dla-v4-noinline <span class="nt">-cpuprofile</span> v4-noinline.pprof 2&gt;&amp; /dev/null
-  ~/Personal/Projects/go-dla   v4 <span class="k">*</span>2 <span class="o">!</span>1 ?21 ❯ go tool pprof v4-noinline.pprof
+❯ ./go-dla-v4-noinline <span class="nt">-cpuprofile</span> v4-noinline.pprof 2&gt;&amp; /dev/null
+❯ go tool pprof v4-noinline.pprof
 File: go-dla-v4-noinline
 Type: cpu
 Time: Oct 14, 2024 at 11:22pm <span class="o">(</span>BST<span class="o">)</span>
