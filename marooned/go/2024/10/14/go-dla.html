@@ -111,7 +111,7 @@ sharing it…</p>
     <tr>
       <td><a href="#v8">v8</a></td>
       <td>Speed up hot path by merging tow functions</td>
-      <td>Coming soon…</td>
+      <td>1.92s</td>
     </tr>
     <tr>
       <td><a href="#v9">v9</a></td>
@@ -1471,9 +1471,104 @@ limits of the world.  On top of that, it is always executed just after
 <p>It’s getting hard to see what individual functions can be made faster at this
 point.  In the previous version, we split a function in two.  This time, we
 notice that we execute <code class="language-plaintext highlighter-rouge">p.Move(dir).Clamp()</code> on the hot path.  Could we merge
-these two to make the code more efficient?  (the answer is yes).</p>
+these two to make the code more efficient?</p>
 
-<p>Coming soon</p>
+<p>We currently have</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">)</span> <span class="n">Move</span><span class="p">(</span><span class="n">dir</span> <span class="kt">int</span><span class="p">)</span> <span class="n">Point</span> <span class="p">{</span>
+	<span class="n">a</span> <span class="o">:=</span> <span class="n">dir</span> <span class="o">&amp;</span> <span class="m">1</span>
+	<span class="n">b</span> <span class="o">:=</span> <span class="n">dir</span> <span class="o">&gt;&gt;</span> <span class="m">1</span>
+	<span class="k">return</span> <span class="n">Point</span><span class="p">{</span>
+		<span class="n">X</span><span class="o">:</span> <span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">+</span> <span class="n">a</span> <span class="o">-</span> <span class="n">b</span><span class="p">,</span>
+		<span class="n">Y</span><span class="o">:</span> <span class="n">p</span><span class="o">.</span><span class="n">Y</span> <span class="o">+</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">-</span> <span class="m">1</span><span class="p">,</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>To clamp the point, we are in a slightly better position than in the
+<code class="language-plaintext highlighter-rouge">Point.Clamp()</code> method, as we know that if the new value of the coordinate is
+out of bounds, the clamped one is the previous value of the coordinate.  Taking
+advantage of that we can write <code class="language-plaintext highlighter-rouge">Point.MoveAndClamp()</code> as follows:</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">// Move the point by one step (dir is expected to be 0, 1, 2 or 3) and clamp it</span>
+<span class="c">// to the confines of the world. It is assumed that the initial value of p is</span>
+<span class="c">// within the confines of the world.</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">)</span> <span class="n">MoveAndClamp</span><span class="p">(</span><span class="n">dir</span> <span class="kt">int</span><span class="p">)</span> <span class="n">Point</span> <span class="p">{</span>
+	<span class="n">a</span> <span class="o">:=</span> <span class="n">dir</span> <span class="o">&amp;</span> <span class="m">1</span>
+	<span class="n">b</span> <span class="o">:=</span> <span class="n">dir</span> <span class="o">&gt;&gt;</span> <span class="m">1</span>
+	<span class="n">x</span> <span class="o">:=</span> <span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">+</span> <span class="n">a</span> <span class="o">-</span> <span class="n">b</span>
+	<span class="n">y</span> <span class="o">:=</span> <span class="n">p</span><span class="o">.</span><span class="n">Y</span> <span class="o">+</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">-</span> <span class="m">1</span>
+	<span class="k">if</span> <span class="kt">uint</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">worldWidth</span> <span class="p">{</span>
+		<span class="c">// We get to this branch if and only if 0 &lt;= x &lt; worldwidth as if x &lt; 0</span>
+		<span class="c">// then uint(x) wraps around to a very big number (bigger than</span>
+		<span class="c">// worldWidth)</span>
+		<span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="n">x</span>
+	<span class="p">}</span>
+	<span class="k">if</span> <span class="kt">uint</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">worldHeight</span> <span class="p">{</span>
+		<span class="c">// As above we get to this branch if and only if 0 &lt;= y &lt; worldHeight</span>
+		<span class="n">p</span><span class="o">.</span><span class="n">Y</span> <span class="o">=</span> <span class="n">y</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="n">p</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>The potential advantage of the above is that we only need to branch once per
+coordinate to clamp, as opposed to twice in the general purpose <code class="language-plaintext highlighter-rouge">Clamp()</code>
+function.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ ./go-dla-v8 <span class="nt">-cpuprofile</span> v8.pprof
+2024/10/17 23:13:31 Worker count: 10
+2024/10/17 23:13:31 Points: 1000 - 152.554209ms
+2024/10/17 23:13:31 Points: 2000 - 152.865ms
+2024/10/17 23:13:31 Points: 3000 - 152.947917ms
+2024/10/17 23:13:31 Points: 4000 - 153.157834ms
+<span class="o">[</span>...]
+2024/10/17 23:13:33 Points: 297000 - 1.92379075s
+2024/10/17 23:13:33 Points: 298000 - 1.924417084s
+2024/10/17 23:13:33 Points: 299000 - 1.924971125s
+2024/10/17 23:13:33 Points: 300000 - 1.925503125s
+</code></pre></div></div>
+
+<p>That’s still a significant enough speedup, so it’s a win, but only by a factor
+of 1.1.  Let’s take a look at the <code class="language-plaintext highlighter-rouge">pprof</code> output.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ go tool pprof <span class="nt">-http</span> :8000 v8.pprof
+Serving web UI on http://localhost:8000
+</code></pre></div></div>
+
+<p><a href="/marooned//assets/dla-v8-pprof.png"><img src="/marooned//assets/dla-v8-pprof.png" alt="v8 profiling" style="display:block; margin-left:auto; margin-right:auto; width: 80%" /></a></p>
+
+<p>Let’s take stock.</p>
+<ul>
+  <li>Unsurprisingly, <code class="language-plaintext highlighter-rouge">Point.MoveAndClamp()</code> becomes the main bottleneck, but we’ve
+already optimised it as much as we reasonably can, so I think we’re finished
+here.</li>
+  <li>Next there is <code class="language-plaintext highlighter-rouge">(*RandDirSource).Next()</code> and <code class="language-plaintext highlighter-rouge">(*RandDirSource).Get()</code>.  Again
+we have given them a fair amount of scrutiny and we are no longer wasting any
+random bits.  Both functions are inlined and the data structure is on the
+stack (TODO: explain how you can tell that) so they are probably as fast as
+they can be.</li>
+  <li>The next one is <code class="language-plaintext highlighter-rouge">(*WorldMap).Neighbours()</code>.  We are precomputing all
+neighbouring locations, so it is just a table lookup and I can’t think of much
+more to do.</li>
+  <li>The last one is interesting: <code class="language-plaintext highlighter-rouge">(*Game).AddPoint</code>.  This gets called every time
+we have aggregated a point on the map.  it is not inlined but that’s fine
+because it is not on the hot path.  However, when it is called, it sends a point on
+the channel used to communicate with the event loop and it seems to be waiting
+for a significant amount of time.</li>
+</ul>
+
+<p>Reflecting on the above, I can see to possible avenues for possible improvements:</p>
+
+<ol>
+  <li>See if we can reduce the time the worker is waiting to send a point on the
+channel.</li>
+  <li>As all the rest is on the hot path, which consists of moving a point
+frantically until it aggregates, find a way to do this more efficiently.  For
+example, we could try moving the point by many steps in one go instead of one
+step at a time.  That would help a lot, especially at the start when the
+world is mostly empty.</li>
+</ol>
 
 <h2 id="maths">Mathematical interlude: combinatorics on random walks</h2>
 
