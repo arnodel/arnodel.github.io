@@ -24,10 +24,20 @@ github_username: arnodel
 
 # Build settings
 markdown: kramdown
+kramdown:
+  math_engine: katex
+  math_engine_opts:
+    macros: {
+      "\\Steps": "\\mathcal{S}_{#1}",
+      "\\Walks": "\\mathcal{W}_{#1}",
+      "\\setof": "\\{ #1 \\:|\\: #2 \\}",
+      "\\Q": "\\mathbb{Q}",
+      "\\vect": "\\mathbf{#1}"
+    }
 theme: minima
 plugins:
   - jekyll-feed
-  - jekyll-katex
+#  - jekyll-katex
 # Exclude from processing.
 # The following items will not be processed, by default. Create a custom list
 # to override the default setting.
@@ -39,3 +49,6 @@ plugins:
 #   - vendor/cache/
 #   - vendor/gems/
 #   - vendor/ruby/
+
+# plugin_loggers:
+#   Jekyll::KatexDefsBlock: debug

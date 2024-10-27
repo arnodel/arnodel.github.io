@@ -3,9 +3,12 @@ layout: post
 title:  "Setting up KaTeX in Jekyll"
 date:   2020-05-25 21:15:14 +0100
 categories: katex jekyll
+latex_defs:
+  Steps: foo
 ---
 
-[{% katex %}\KaTeX{% endkatex %}](https://katex.org) is great, so that's what I
+
+[$$\KaTeX$$](https://katex.org) is great, so that's what I
 thought of first of using for displaying mathematical expressions when setting
 up these pages. However I don't know anything about Jekyll at all, so it could
 have been a challenge...
@@ -38,15 +41,11 @@ later, as this means I need to remember to build the site before each commit!.
 
 The examples below are copy-pasted from the jekyll-katex readme.
 
-Some inline maths: {% katex %}
-c = \pm\sqrt{a^2 + b^2}
-{% endkatex %}
+Some inline maths: $$c = \pm\sqrt{a^2 + b^2}$$
 
 Some display maths:
-{% katex display %}
-c = \pm\sqrt{a^2 + b^2}
-{% endkatex %}
 
-{% katexmm %}
-This is a mixed environment where you can have normal text and $c = \pm\sqrt{a^2 + b^2}$ fenced math. \$!
-{% endkatexmm %}
+$$c = \pm\sqrt{a^2 + b^2}$$
+
+
+This is a mixed environment where you can have normal text and $$c = \pm\sqrt{a^2 + b^2}$$ fenced math. $!
