@@ -9,15 +9,15 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Executive Summary" />
 <meta property="og:description" content="Executive Summary" />
-<link rel="canonical" href="/marooned/go/2024/10/14/go-dla.html" />
-<meta property="og:url" content="/marooned/go/2024/10/14/go-dla.html" />
+<link rel="canonical" href="/marooned/go/2024/10/28/go-dla.html" />
+<meta property="og:url" content="/marooned/go/2024/10/28/go-dla.html" />
 <meta property="og:site_name" content="Marooned on Github" />
 <meta property="og:type" content="article" />
-<meta property="article:published_time" content="2024-10-14T18:13:14+01:00" />
+<meta property="article:published_time" content="2024-10-28T17:13:14+00:00" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Fun with diffusion-limited aggregation" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-10-14T18:13:14+01:00","datePublished":"2024-10-14T18:13:14+01:00","description":"Executive Summary","headline":"Fun with diffusion-limited aggregation","mainEntityOfPage":{"@type":"WebPage","@id":"/marooned/go/2024/10/14/go-dla.html"},"url":"/marooned/go/2024/10/14/go-dla.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-10-28T17:13:14+00:00","datePublished":"2024-10-28T17:13:14+00:00","description":"Executive Summary","headline":"Fun with diffusion-limited aggregation","mainEntityOfPage":{"@type":"WebPage","@id":"/marooned/go/2024/10/28/go-dla.html"},"url":"/marooned/go/2024/10/28/go-dla.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/marooned/assets/main.css"><link type="application/atom+xml" rel="alternate" href="/marooned/feed.xml" title="Marooned on Github" /><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
 </head>
@@ -43,7 +43,7 @@
   <header class="post-header">
     <h1 class="post-title p-name" itemprop="name headline">Fun with diffusion-limited aggregation</h1>
     <p class="post-meta">
-      <time class="dt-published" datetime="2024-10-14T18:13:14+01:00" itemprop="datePublished">Oct 14, 2024
+      <time class="dt-published" datetime="2024-10-28T17:13:14+00:00" itemprop="datePublished">Oct 28, 2024
       </time></p>
   </header>
 
@@ -53,16 +53,17 @@
 <p>My son got me interested in
 <a href="https://en.wikipedia.org/wiki/Diffusion-limited_aggregation">DLA</a> (see
 <a href="#intro">intro</a>).  I made a program to draw some pretty pictures, benchmarked it
-(for aggregating 300000 particles on a 1000x1000 canvas), profiled it and
-optimised it in 9 different ways to go <strong>from 8min16s to 0.859s</strong>.  Along the way I explored the <a href="#maths">Maths</a>
-about random walks and found useful properties that helped get the program to go
-faster.</p>
+(for aggregating 300000 particles on a 1000 x 1000 canvas), profiled it and
+optimised it in 9 different ways to go <strong>from 8min16s to 0.686s</strong>.  Along the
+way I explored the <a href="#maths">Maths</a> about random walks and found useful
+properties that helped get the program to go faster. All the versions are
+available at <a href="https://github.com/arnodel/go-dla">github.com/arnodel/go-dla</a>.</p>
 
 <p>This long post tells the story of all those optimisations.  I don’t think any of
 them is amazing, but I found it striking that I could apply so many different
 strategies to speed up a seemingly simple program very significantly - in fact
-by a factor of 600!  Also I had a lot of fun on this journey and I feel like
-sharing it…</p>
+by a factor of more than 700!  Also I had a lot of fun on this journey and I
+feel like sharing it…</p>
 
 <table>
   <thead>
@@ -70,6 +71,7 @@ sharing it…</p>
       <th>Version</th>
       <th>Optimisation</th>
       <th>benchmark time</th>
+      <th>github link</th>
     </tr>
   </thead>
   <tbody>
@@ -77,49 +79,75 @@ sharing it…</p>
       <td><a href="#v1">v1</a></td>
       <td>None at all</td>
       <td>8min16s</td>
+      <td><a href="https://github.com/arnodel/go-dla/tree/v1">v1</a></td>
     </tr>
     <tr>
       <td><a href="#v2">v2</a></td>
       <td>Better data structure for world map</td>
       <td>1min35s</td>
+      <td><a href="https://github.com/arnodel/go-dla/compare/v1...v2">v1..v2</a></td>
     </tr>
     <tr>
       <td><a href="#v3">v3</a></td>
       <td>Use all CPU cores</td>
       <td>12.7s</td>
+      <td><a href="https://github.com/arnodel/go-dla/compare/v2...v3">v2..v3</a></td>
     </tr>
     <tr>
       <td><a href="#v4">v4</a></td>
       <td>Remove branching on hot path</td>
       <td>7.86s</td>
+      <td><a href="https://github.com/arnodel/go-dla/compare/v3...v4">v3..v4</a></td>
     </tr>
     <tr>
       <td><a href="#v5">v5</a></td>
       <td>Do not waste a random bit</td>
       <td>4.08s</td>
+      <td><a href="https://github.com/arnodel/go-dla/compare/v4...v5">v4..v5</a></td>
     </tr>
     <tr>
       <td><a href="#v6">v6</a></td>
       <td>Precompute neighbours</td>
       <td>2.50s</td>
+      <td><a href="https://github.com/arnodel/go-dla/compare/v5...v6">v5..v6</a></td>
     </tr>
     <tr>
       <td><a href="#v7">v7</a></td>
       <td>Speed up hot path by splitting a function to inline it</td>
       <td>2.10s</td>
+      <td><a href="https://github.com/arnodel/go-dla/compare/v6...v7">v6..v7</a></td>
     </tr>
     <tr>
       <td><a href="#v8">v8</a></td>
-      <td>Speed up hot path by merging tow functions</td>
+      <td>Speed up hot path by merging two functions</td>
       <td>1.92s</td>
+      <td><a href="https://github.com/arnodel/go-dla/compare/v7...v8">v7..v8</a></td>
     </tr>
     <tr>
       <td><a href="#v9">v9</a></td>
       <td>Use the power of Maths!</td>
       <td>0.873s</td>
+      <td><a href="https://github.com/arnodel/go-dla/compare/v8...v9">v8..v9</a></td>
+    </tr>
+    <tr>
+      <td><a href="#v10">v10</a></td>
+      <td>Reduce contention on communication channel</td>
+      <td>0.687s</td>
+      <td><a href="https://github.com/arnodel/go-dla/compare/v9...v10">v9..v10</a></td>
     </tr>
   </tbody>
 </table>
+
+<p>The rest of this article is composed of</p>
+<ul>
+  <li>and <a href="#intro">introduction</a> to diffusion-limiteda aggregation;</li>
+  <li>a section for each version of the program, explaining how I dealt with the
+main bottleneck in the previous version and analysing the next bottleneck.
+There is a link to each section in the table above;</li>
+  <li>a <a href="#maths">mathematical interlude</a> where I explore combinatorial properties of
+random walks in 2D, in order to get the program to go even faster (and I get a
+little bit lost along the way).</li>
+</ul>
 
 <h2 id="intro">What is diffusion-limited aggregation?</h2>
 
@@ -1601,7 +1629,7 @@ significant performance improvements.</p>
 <p>At this point I have more or less ran out of optimisations, so I consider the
 mathematics of random walks, to see if they have properties that may mean we can
 have a more efficient algorithm for our problem.  My aim is to see if it’s
-possible to generate cheaply a random walk with $N$ steps instead of a single
+possible to generate cheaply a random walk with <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi></mrow><annotation encoding="application/x-tex">N</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span></span></span></span> steps instead of a single
 step at a time.</p>
 
 <h2 id="2d-random-walks">2D random walks</h2>
@@ -2167,7 +2195,7 @@ that there is a point within reach of <span class="katex"><span class="katex-mat
 <span class="c">// CannotFreeWalkFrom returns true if there is an obstacle nearby preventing a</span>
 <span class="c">// free walk from p.</span>
 <span class="k">func</span> <span class="p">(</span><span class="n">m</span> <span class="o">*</span><span class="n">WorldMap</span><span class="p">)</span> <span class="n">CannotFreeWalkFrom</span><span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">)</span> <span class="kt">bool</span> <span class="p">{</span>
-	<span class="k">return</span> <span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">&amp;</span><span class="n">cannotFreeWalk</span> <span class="o">!=</span> <span class="m">0</span>
+    <span class="k">return</span> <span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">&amp;</span><span class="n">cannotFreeWalk</span> <span class="o">!=</span> <span class="m">0</span>
 <span class="p">}</span>
 </code></pre></div></div>
 
@@ -2239,6 +2267,151 @@ one, I promise!</p>
 
 <h2 id="v10">Version 10 - just one more thing!</h2>
 
+<p>If in version 9 the workers are spending too much time waiting to send a point
+on the game loop’s <code class="language-plaintext highlighter-rouge">pending</code> points channel, then let’s make them send fewer
+things on that channel.  How can we do that?  An obvious way is to send batches
+of points instead of individual points. Let’s do it in a parametrised way.
+We’re going to add a <code class="language-plaintext highlighter-rouge">batchSize</code> constant and do everything in terms of it.</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">const</span> <span class="n">batchSize</span> <span class="o">=</span> <span class="m">20</span>
+</code></pre></div></div>
+
+<p>We need to adapt the game loop so it maintains a channel of batches of points
+instead of individual points.  Fortunately we already have <code class="language-plaintext highlighter-rouge">pendingItem</code> data
+structure.  Let’s change it to this.</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">type</span> <span class="n">pendingItem</span> <span class="k">struct</span> <span class="p">{</span>
+    <span class="n">points</span> <span class="p">[</span><span class="n">batchSize</span><span class="p">]</span><span class="n">Point</span>
+    <span class="n">steps</span>  <span class="kt">int</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>In <code class="language-plaintext highlighter-rouge">NewGame</code> we’re going to keep the number of pending points the same so we’ll
+change the buffer size of the channel to <code class="language-plaintext highlighter-rouge">maxPendingPoints/batchSize</code>.</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">NewGame</span><span class="p">(</span><span class="n">initialPoints</span> <span class="n">iter</span><span class="o">.</span><span class="n">Seq</span><span class="p">[</span><span class="n">Point</span><span class="p">],</span> <span class="n">maxPoints</span> <span class="kt">int</span><span class="p">)</span> <span class="o">*</span><span class="n">Game</span> <span class="p">{</span>
+    <span class="n">game</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="n">Game</span><span class="p">{</span>
+        <span class="n">worldImage</span><span class="o">:</span> <span class="n">ebiten</span><span class="o">.</span><span class="n">NewImage</span><span class="p">(</span><span class="n">worldWidth</span><span class="p">,</span> <span class="n">worldHeight</span><span class="p">),</span>
+        <span class="n">pending</span><span class="o">:</span>    <span class="nb">make</span><span class="p">(</span><span class="k">chan</span> <span class="n">pendingItem</span><span class="p">,</span> <span class="n">maxPendingPoints</span><span class="o">/</span><span class="n">batchSize</span><span class="p">),</span>
+        <span class="n">maxPoints</span><span class="o">:</span>  <span class="n">maxPoints</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="o">...</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>And then in the game loop, when we receive a pending item, we now need draw all
+the points in it.  This means we change the <code class="language-plaintext highlighter-rouge">(*Game).Update()</code> function’s <code class="language-plaintext highlighter-rouge">case
+item := &lt;-g.pending</code> as follows.</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        <span class="k">case</span> <span class="n">item</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="n">g</span><span class="o">.</span><span class="n">pending</span><span class="o">:</span>
+            <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">p</span> <span class="o">:=</span> <span class="k">range</span> <span class="n">item</span><span class="o">.</span><span class="n">points</span> <span class="p">{</span>
+                <span class="c">// Start white and gradually fade out to black</span>
+                <span class="n">g</span><span class="o">.</span><span class="n">worldImage</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+                    <span class="n">p</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">Y</span><span class="p">,</span>
+                    <span class="n">color</span><span class="o">.</span><span class="n">Gray16</span><span class="p">{</span><span class="n">Y</span><span class="o">:</span> <span class="kt">uint16</span><span class="p">(</span><span class="m">0xFFFF</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="n">i</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span><span class="p">)},</span>
+                <span class="p">)</span>
+            <span class="p">}</span>
+            <span class="n">s</span> <span class="o">+=</span> <span class="n">item</span><span class="o">.</span><span class="n">steps</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="n">batchSize</span>
+            <span class="k">if</span> <span class="n">i</span><span class="o">%</span><span class="m">10000</span> <span class="o">&lt;</span> <span class="n">batchSize</span> <span class="p">{</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">Printf</span><span class="p">(</span><span class="s">"Points: %d - Steps = %d, %s"</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">Since</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">start</span><span class="p">))</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="n">n</span> <span class="p">{</span>
+                <span class="n">pprof</span><span class="o">.</span><span class="n">StopCPUProfile</span><span class="p">()</span>
+                <span class="k">return</span> <span class="no">nil</span>
+            <span class="p">}</span>
+</code></pre></div></div>
+
+<p>Last thing, we don’t need an <code class="language-plaintext highlighter-rouge">AddPoint()</code> method but rather an <code class="language-plaintext highlighter-rouge">AddBatch()</code> one.</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">// AddBatch adds a batch of points to the pending items</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">g</span> <span class="o">*</span><span class="n">Game</span><span class="p">)</span> <span class="n">AddBatch</span><span class="p">(</span><span class="n">points</span> <span class="o">*</span><span class="p">[</span><span class="n">batchSize</span><span class="p">]</span><span class="n">Point</span><span class="p">,</span> <span class="n">steps</span> <span class="kt">int</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">g</span><span class="o">.</span><span class="n">pending</span> <span class="o">&lt;-</span> <span class="n">pendingItem</span><span class="p">{</span>
+        <span class="n">points</span><span class="o">:</span> <span class="o">*</span><span class="n">points</span><span class="p">,</span>
+        <span class="n">steps</span><span class="o">:</span>  <span class="n">steps</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>That’s it for the game loop!</p>
+
+<p>Now we’ll create an adapter type for <code class="language-plaintext highlighter-rouge">AggregatePoints</code> so it can still only be concerned with adding individual points.</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">// PointBatcher accumulates points to send to the game loop as a batch, so</span>
+<span class="c">// others doon't have to worry about doing that.</span>
+<span class="k">type</span> <span class="n">PointBatcher</span> <span class="k">struct</span> <span class="p">{</span>
+    <span class="n">game</span>   <span class="o">*</span><span class="n">Game</span>
+    <span class="n">points</span> <span class="p">[</span><span class="n">batchSize</span><span class="p">]</span><span class="n">Point</span>
+    <span class="n">steps</span>  <span class="kt">int</span>
+    <span class="n">i</span>      <span class="kt">int</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">newPointBatcher</span><span class="p">(</span><span class="n">game</span> <span class="o">*</span><span class="n">Game</span><span class="p">)</span> <span class="o">*</span><span class="n">PointBatcher</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="o">&amp;</span><span class="n">PointBatcher</span><span class="p">{</span><span class="n">game</span><span class="o">:</span> <span class="n">game</span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c">// AddPoint adds a point to the batcher, possibly triggering sending a batch to</span>
+<span class="c">// its game if the batch size has been reached.</span>
+<span class="k">func</span> <span class="p">(</span><span class="n">b</span> <span class="o">*</span><span class="n">PointBatcher</span><span class="p">)</span> <span class="n">AddPoint</span><span class="p">(</span><span class="n">p</span> <span class="n">Point</span><span class="p">,</span> <span class="n">steps</span> <span class="kt">int</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">b</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="n">b</span><span class="o">.</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span>
+    <span class="n">b</span><span class="o">.</span><span class="n">steps</span> <span class="o">+=</span> <span class="n">steps</span>
+    <span class="n">b</span><span class="o">.</span><span class="n">i</span><span class="o">++</span>
+    <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">i</span> <span class="o">==</span> <span class="n">batchSize</span> <span class="p">{</span>
+        <span class="n">b</span><span class="o">.</span><span class="n">game</span><span class="o">.</span><span class="n">AddBatch</span><span class="p">(</span><span class="o">&amp;</span><span class="n">b</span><span class="o">.</span><span class="n">points</span><span class="p">,</span> <span class="n">b</span><span class="o">.</span><span class="n">steps</span><span class="p">)</span>
+        <span class="n">b</span><span class="o">.</span><span class="n">i</span> <span class="o">=</span> <span class="m">0</span>
+        <span class="n">b</span><span class="o">.</span><span class="n">steps</span> <span class="o">=</span> <span class="m">0</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>All that remains to be done is to create a <code class="language-plaintext highlighter-rouge">*PointBatcher</code> for each worker so it
+can use it to send points, that’s done in the <code class="language-plaintext highlighter-rouge">main()</code> function.</p>
+
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="o">...</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="o">:=</span> <span class="m">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">workerCount</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">{</span>
+        <span class="n">batcher</span> <span class="o">:=</span> <span class="n">newPointBatcher</span><span class="p">(</span><span class="n">game</span><span class="p">)</span>
+        <span class="k">go</span> <span class="n">AggregatePoints</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">worldMap</span><span class="p">,</span> <span class="n">method</span><span class="o">.</span><span class="n">pickPoint</span><span class="p">,</span> <span class="n">batcher</span><span class="o">.</span><span class="n">AddPoint</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="o">...</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>We’re done!  Let’s hope it works. Note: I’ve experimented with various batch
+sizes, but it looks like 20, which was really my first guess, is a pretty good
+value.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ go run <span class="nb">.</span> <span class="nt">-cpuprofile</span> v10.pprof
+2024/10/27 22:13:47 Worker count: 10
+2024/10/27 22:13:47 Points: 10000 - Steps <span class="o">=</span> 1161799448, 168.772167ms
+2024/10/27 22:13:47 Points: 20000 - Steps <span class="o">=</span> 2185878426, 255.932708ms
+2024/10/27 22:13:47 Points: 30000 - Steps <span class="o">=</span> 2997724177, 330.172958ms
+2024/10/27 22:13:47 Points: 40000 - Steps <span class="o">=</span> 3624112404, 404.131542ms
+<span class="o">[</span>...]
+2024/10/27 22:13:47 Points: 270000 - Steps <span class="o">=</span> 5394107093, 680.045208ms
+2024/10/27 22:13:47 Points: 280000 - Steps <span class="o">=</span> 5394488513, 682.787292ms
+2024/10/27 22:13:47 Points: 290000 - Steps <span class="o">=</span> 5394813846, 685.154083ms
+2024/10/27 22:13:47 Points: 300000 - Steps <span class="o">=</span> 5395066382, 687.178875ms
+</code></pre></div></div>
+
+<p>It was worth it as we sped it up by a factor of almost 1.3.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>❯ go tool pprof <span class="nt">-http</span> :8000 v10.pprof
+Serving web UI on http://localhost:8000
+</code></pre></div></div>
+
+<p><a href="/marooned//assets/dla-v10-pprof.png"><img src="/marooned//assets/dla-v10-pprof.png" alt="v10 profiling" style="display:block; margin-left:auto; margin-right:auto; width: 80%" /></a></p>
+
+<p>This profile shows the batching did its job - the workers are no longer spending
+any significant time waiting to send a point on the channel.  Instead, it’s
+random generation which is back as the main bottleneck.  That makes sense as
+<code class="language-plaintext highlighter-rouge">RandomFreeWalk</code> is burning through random bits pretty fast.  Perhaps it would
+actually be possible to do something about it as currently we set the free walk
+length to 16 steps, we we could actually do 2 free walks with one 64 bit random
+number…  Actually, I’ve tried it and it doesn’t bring any significant speedup.</p>
+
+<p>So that’s the end of the story!  Hope you enjoyed it if you got this far…</p>
+
 <h2 id="failed-attempts">Failed attempts</h2>
 
 <ul>
@@ -2246,7 +2419,7 @@ one, I promise!</p>
   <li>Making the receiver of <code class="language-plaintext highlighter-rouge">MoveAndClamp()</code> a pointer</li>
 </ul>
 
-  </div><a class="u-url" href="/marooned/go/2024/10/14/go-dla.html" hidden></a>
+  </div><a class="u-url" href="/marooned/go/2024/10/28/go-dla.html" hidden></a>
 </article>
 
       </div>
